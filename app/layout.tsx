@@ -6,7 +6,7 @@ import { theme } from '../theme';
 import { NavbarNested } from '../components/Navbar/NavbarNested';
 import { FooterLinks } from '../components/Footer/FooterLinks';
 import { usePathname } from 'next/navigation';
-
+import { UserProvider } from '../contexts/UserContext'
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+      <UserProvider>
         <MantineProvider theme={theme}>
           <div style={{ display: 'flex' }}>
             {/* Render Navbar only if not on the login page */}
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <FooterLinks />
         </MantineProvider>
+        </UserProvider>
       </body>
     </html>
   );

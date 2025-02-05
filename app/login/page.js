@@ -17,11 +17,13 @@ import classes from './AuthenticationTitle.module.css';
 import { useRouter } from 'next/navigation';
 import {React,useState} from 'react'
 import { useDisclosure } from '@mantine/hooks';
+import { useUser } from '../../contexts/UserContext'
 export default function AuthenticationTitle() {
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [visible, { toggle }] = useDisclosure(false);
+    const { setUserData } = useUser();
     const router = useRouter();
 
     const handleSignIn = async () => {
@@ -46,10 +48,16 @@ export default function AuthenticationTitle() {
             }
     
             const responseData = await response.json();
-            console.log('User created successfully:', responseData);
-            
+            if(responseData.access_token){
+                console.log('User created successfully:', responseData);
+                setUserData(responseData); 
+
+                toggle()
+                router.push('/stat'); 
+            }
             toggle()
-            router.push('/stat'); 
+            
+           
         } catch (error) {
             console.error('Error creating user:', error);
             toggle()
