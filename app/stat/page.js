@@ -10,7 +10,7 @@ const icons = {
 
 const data = [
   { label: 'Transactions', stats: '456,578', progress: 65, color: 'teal', icon: 'up' },
-  { label: 'Booked Venue', stats: '2,550', progress: 72, color: 'blue', icon: 'up' },
+  { label: 'Books Sold', stats: '2,550', progress: 72, color: 'blue', icon: 'up' },
   {
     label: 'Users',
     stats: '4,735',

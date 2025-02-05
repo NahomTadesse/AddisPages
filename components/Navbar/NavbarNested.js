@@ -19,12 +19,12 @@ import {
   const mockdata = [
     { label: 'Dashboard', icon: IconGauge },
     {
-      label: 'Venue',
+      label: 'Books',
       icon: IconNotes,
       initiallyOpened: true,
       links: [
-        { label: 'Book Venue', link: '/bookvenue' },
-        { label: 'Venue Statue', link: '/booked' },
+        { label: 'Add Book', link: '/bookvenue' },
+        { label: 'Book List', link: '/booked' },
         { label: 'History', link: '/usersTable' },
         // { label: 'Log In', link: '/login' },
       ],

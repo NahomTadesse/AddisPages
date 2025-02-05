@@ -6,12 +6,11 @@ import { theme } from '../theme';
 import { NavbarNested } from '../components/Navbar/NavbarNested';
 import { FooterLinks } from '../components/Footer/FooterLinks';
 import { usePathname } from 'next/navigation';
-import { UserProvider } from '../contexts/UserContext'
+import { UserProvider } from '../contexts/UserContext';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
- 
-  const isLoginPage = pathname === '/' ; 
+  const isLoginPage = pathname === '/';
 
   return (
     <html lang="en" {...mantineHtmlProps}>
@@ -24,17 +23,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-      <UserProvider>
-        <MantineProvider theme={theme}>
-          <div style={{ display: 'flex' }}>
-            {/* Render Navbar only if not on the login page */}
-            {!isLoginPage && <NavbarNested />}
-            <main style={{ flexGrow: 1, padding: '20px' }}>
-              {children}
-            </main>
-          </div>
-          <FooterLinks />
-        </MantineProvider>
+        <UserProvider>
+          <MantineProvider theme={theme}>
+            <div style={{ display: 'flex' }}>
+              {/* Render Navbar only if not on the login page */}
+              {!isLoginPage && <NavbarNested />}
+              <main style={{ flexGrow: 1, padding: '20px' }}>
+                {children}
+              </main>
+            </div>
+            <FooterLinks />
+          </MantineProvider>
         </UserProvider>
       </body>
     </html>

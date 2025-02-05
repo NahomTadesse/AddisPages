@@ -53,6 +53,7 @@ export default function AuthenticationTitle() {
                 setUserData(responseData); 
 
                 toggle()
+                // localStorage.setItem('userData', JSON.stringify(responseData));
                 router.push('/stat'); 
             }
             toggle()
