@@ -3,9 +3,10 @@ import { IconChevronRight } from '@tabler/icons-react';
 import { Avatar, Group, Text, UnstyledButton } from '@mantine/core';
 import classes from './UserButton.module.css';
 import { useUser } from '../../contexts/UserContext'
+import useLocalStorage from '../../hooks/useLocalStorage'
 export function UserButton() {
   
-  const { userData } = useUser();
+  const [userData] = useLocalStorage('userData', {});
   console.log('serr',userData)
   // const savedData = localStorage.getItem('userData');
   return (

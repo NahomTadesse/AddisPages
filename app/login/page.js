@@ -11,23 +11,41 @@ import {
     TextInput,
     Title,
     LoadingOverlay,
-     Box
+     Box,
+     Alert
 } from '@mantine/core';
 import classes from './AuthenticationTitle.module.css';
 import { useRouter } from 'next/navigation';
-import {React,useState} from 'react'
+import {React,useState,useEffect} from 'react'
 import { useDisclosure } from '@mantine/hooks';
 import { useUser } from '../../contexts/UserContext'
+import useLocalStorage from '../../hooks/useLocalStorage'
+import { IconInfoCircle, IconUser } from '@tabler/icons-react';
 export default function AuthenticationTitle() {
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [visible, { toggle }] = useDisclosure(false);
-    const { setUserData } = useUser();
+    const [loading, setLoading] = useState(false);
+    const [errorVisible, setErrorVisible] = useState(false);
+    // const { setUserData } = useUser();
+    const [userData, setUserData] = useLocalStorage('userData', {});
+    const [alert, setAlert] = useState({ visible: false, message: '', color: '' });
+    const icon = <IconInfoCircle />;
     const router = useRouter();
 
+    useEffect(() => {
+        if (errorVisible) {
+            const timer = setTimeout(() => {
+                setErrorVisible(false);
+            }, 1000);
+
+            return () => clearTimeout(timer); 
+        }
+    }, [errorVisible]);
+
     const handleSignIn = async () => {
-        toggle(); // Show loading overlay
+        setLoading(true);
         console.log('Phone:', phone);
         console.log('Password:', password);
         
@@ -44,7 +62,11 @@ export default function AuthenticationTitle() {
             });
     
             if (!response.ok) {
+                setLoading(false);
+                setErrorVisible(true)
+              
                 throw new Error('Network response was not ok');
+                
             }
     
             const responseData = await response.json();
@@ -52,25 +74,29 @@ export default function AuthenticationTitle() {
                 console.log('User created successfully:', responseData);
                 setUserData(responseData); 
 
-                toggle()
+                setLoading(false);
                 // localStorage.setItem('userData', JSON.stringify(responseData));
                 router.push('/stat'); 
             }
-            toggle()
+            else{
+                setErrorVisible(true)
+            }
+            setLoading(false);
             
            
         } catch (error) {
             console.error('Error creating user:', error);
-            toggle()
+            setErrorVisible(true)
+            setLoading(false);
         } finally {
-            toggle(); // Hide loading overlay
+            setLoading(false);
         }
     };
 
     return (
         <Box pos="relative">
             <LoadingOverlay
-          visible={visible}
+          visible={loading}
           zIndex={1000}
           overlayProps={{ radius: 'sm', blur: 2 }}
           loaderProps={{ color: 'blue', type: 'bars' }}
@@ -83,10 +109,12 @@ export default function AuthenticationTitle() {
             <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                 <TextInput label="Phone Number" value={phone}
                  onChange={(e) => setPhone(e.target.value)}
+                 rightSection={<IconUser size={20} />}
                 placeholder="your number" required />
                 
                 <PasswordInput label="Password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
+
                 placeholder="Your password" required mt="md" />
 
                 <Group justify="space-between" mt="lg">
@@ -102,6 +130,9 @@ export default function AuthenticationTitle() {
                 >
                     Sign in
                 </Button>
+              { errorVisible && <Alert variant="light" color="red" radius="md" title="Alert title" icon={icon}>
+                Error Logging In
+              </Alert>}
             </Paper>
         </Container>
         </Box>
