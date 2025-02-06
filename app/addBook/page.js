@@ -101,7 +101,7 @@ import { useEffect, useState } from 'react';
 import { Autocomplete, TextInput, Button, Notification ,
   Container,Title ,FileInput,LoadingOverlay} from '@mantine/core';
 
-import { IconBook, IconMoney, IconStock, IconDescription, IconGenre, IconUser, IconUpload } from '@tabler/icons-react'; 
+import { IconBook, IconMoney, IconStock, IconDescription, IconGenre, IconUser, IconUpload, IconWriting, IconList, IconCash, IconStack } from '@tabler/icons-react'; 
 import { useDisclosure } from '@mantine/hooks';
 export default function BookForm() {
   const [title, setTitle] = useState('');
@@ -172,8 +172,32 @@ useEffect(()=>{
     label: `${pub.name}` 
 }));
 
-
-  const genres = ['horror', 'comedy', 'sifi'];
+const genres = [
+  "Literary Fiction",
+  "Mystery",
+  "Thriller",
+  "Fantasy",
+  "Science Fiction",
+  "Historical Fiction",
+  "Romance",
+  "Horror",
+  "Adventure",
+  "Dystopian",
+  "Biography",
+  "Autobiography",
+  "Self-Help",
+  "Travel",
+  "Cookbooks",
+  "History",
+  "Science and Nature",
+  "Politics",
+  "Business and Economics",
+  "Graphic Novels",
+  "Poetry",
+  "Children's Literature",
+  "Young Adult"
+];
+  // const genres = ['horror', 'comedy', 'sifi'];
 
   const validateForm = () => {
     if (!title || !description || !genre || !authorId || !publisherId || price <= 0 || stock < 0) {
@@ -239,7 +263,7 @@ useEffect(()=>{
           required
           onChange={(event) => setPrice(event.currentTarget.value)}
           placeholder="Enter book price"
-          rightSection={<IconBook size={20} />}
+          rightSection={<IconCash size={20} />}
           style={{ maxWidth: 300, marginTop: 10 }}
         />
         <TextInput
@@ -249,7 +273,7 @@ useEffect(()=>{
           required
           onChange={(event) => setStock(event.currentTarget.value)}
           placeholder="Enter stock quantity"
-          rightSection={<IconBook size={20} />}
+          rightSection={<IconStack size={20} />}
           style={{ maxWidth: 300, marginTop: 10 }}
         />
         <TextInput
@@ -258,7 +282,7 @@ useEffect(()=>{
           required
           onChange={(event) => setDescription(event.currentTarget.value)}
           placeholder="Enter book description"
-          rightSection={<IconBook size={20} />}
+          rightSection={<IconWriting size={20} />}
           style={{ maxWidth: 300, marginTop: 10 }}
         />
         <Autocomplete
@@ -268,7 +292,7 @@ useEffect(()=>{
           required
           onChange={setGenre}
           placeholder="Select genre"
-          rightSection={<IconBook size={20} />}
+          rightSection={<IconList size={20} />}
           style={{ maxWidth: 300, marginTop: 10 }}
         />
         <Autocomplete
@@ -308,7 +332,7 @@ useEffect(()=>{
           rightSection={<IconUpload size={20} />}
           style={{ maxWidth: 300 }}
         />
-        <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 300, height: 50, marginTop: 50 }}>Submit</Button>
+        <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 200, height: 50, marginTop: 20 }}>Create</Button>
       </form>
     </Container>
     </div>

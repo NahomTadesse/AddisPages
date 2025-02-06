@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { Container, TextInput, Button, Title, FileInput, Group, Grid } from '@mantine/core';
+import { IconHome, IconImageInPicture, IconLock, IconMail, IconPhoneCall, IconUpload, IconUser } from '@tabler/icons-react';
 
 export default function AdminRegistration() {
   const [name, setName] = useState('');
@@ -27,6 +28,7 @@ export default function AdminRegistration() {
             onChange={(event) => setName(event.currentTarget.value)}
             placeholder="Enter your name"
             required
+            rightSection={<IconUser size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>
@@ -38,6 +40,7 @@ export default function AdminRegistration() {
             placeholder="Enter your email"
             required
             type="email"
+            rightSection={<IconMail size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>
@@ -49,6 +52,7 @@ export default function AdminRegistration() {
             placeholder="Enter your password"
             required
             type="password"
+            rightSection={<IconLock size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>
@@ -59,6 +63,7 @@ export default function AdminRegistration() {
             onChange={(event) => setPhone(event.currentTarget.value)}
             placeholder="Enter your phone number"
             required
+            rightSection={<IconPhoneCall size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>
@@ -69,6 +74,7 @@ export default function AdminRegistration() {
             onChange={(event) => setAddress(event.currentTarget.value)}
             placeholder="Enter your address"
             required
+            rightSection={<IconHome size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>
@@ -79,6 +85,7 @@ export default function AdminRegistration() {
             placeholder='Upload Document'
             onChange={setDocument}
             required
+            rightSection={<IconUpload size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>
@@ -89,6 +96,7 @@ export default function AdminRegistration() {
             accept="image/*"
             onChange={setProfilePicture}
             required
+            rightSection={<IconImageInPicture size={20} />}
             style={{ maxWidth:300,marginTop: 10 }}
           />
         </Grid.Col>

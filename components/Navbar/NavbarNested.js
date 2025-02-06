@@ -29,6 +29,30 @@ import {
         // { label: 'Log In', link: '/login' },
       ],
     },
+
+    {
+      label: 'Publishers',
+      icon: IconNotes,
+      initiallyOpened: false,
+      links: [
+        { label: 'Add Publisher', link: '/addPblisher' },
+        // { label: 'Orders', link: '/orders' },
+        { label: 'Publishers', link: '/publisherList' },
+        // { label: 'Log In', link: '/login' },
+      ],
+    },
+
+    {
+      label: 'Authors',
+      icon: IconNotes,
+      initiallyOpened: false,
+      links: [
+        { label: 'Add Author', link: '/addAuthor' },
+        // { label: 'Orders', link: '/orders' },
+        { label: 'Authors', link: '/authorList' },
+        // { label: 'Log In', link: '/login' },
+      ],
+    },
     // {
     //   label: 'Releases',
     //   icon: IconCalendarStats,
@@ -41,7 +65,7 @@ import {
     
    
     {label: 'Analytics', icon: IconPresentationAnalytics ,
-      initiallyOpened: true,
+      initiallyOpened: false,
            links: [
         { label: 'Overall Stat', link: '/stat' },
         { label: 'Monthly Stat', link: '/stat' },
@@ -50,7 +74,7 @@ import {
 
     },
     { label: 'Register', icon: IconFileAnalytics,
-      initiallyOpened: true,
+      initiallyOpened: false,
       links: [
         // { label: 'Enable 2FA', link: '/stat' },
         { label: 'Register Admin', link: '/registerAdmin' },
@@ -59,23 +83,23 @@ import {
 
      },
     // { label: 'Settings', icon: IconAdjustments },
-    {
-      label: 'Settings',
-      icon: IconLock,
-      initiallyOpened: true,
-      links: [
-        // { label: 'Enable 2FA', link: '/stat' },
-        { label: 'Set Price', link: '/mapDaysPrice' },
-        { label: 'Members Discount', link: '/membersDiscount' },
-      ],
-    },
+    // {
+    //   label: 'Settings',
+    //   icon: IconLock,
+    //   initiallyOpened: true,
+    //   links: [
+    //     // { label: 'Enable 2FA', link: '/stat' },
+    //     { label: 'Set Price', link: '/mapDaysPrice' },
+    //     { label: 'Members Discount', link: '/membersDiscount' },
+    //   ],
+    // },
 
     {label: 'Reports', icon: IconPresentationAnalytics ,
-      initiallyOpened: true,
+      initiallyOpened: false,
       links: [
-   { label: 'Overall Report', link: '/usersTable' },
-   { label: 'Monthly Report', link: '/usersTable' },
-   { label: 'Yearly Report', link: '/usersTable' },
+   { label: 'Overall Report', link: '/bookList' },
+   { label: 'Monthly Report', link: '/bookList' },
+   { label: 'Yearly Report', link: '/bookList' },
  ],
 
 },
@@ -84,7 +108,7 @@ import {
     {
       label: 'Security',
       icon: IconLock,
-      initiallyOpened: true,
+      initiallyOpened: false,
       links: [
         // { label: 'Enable 2FA', link: '/stat' },
         { label: 'Change password', link: '/forgetpass' },
