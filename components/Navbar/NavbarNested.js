@@ -23,9 +23,9 @@ import {
       icon: IconNotes,
       initiallyOpened: true,
       links: [
-        { label: 'Add Book', link: '/bookvenue' },
-        { label: 'Book List', link: '/booked' },
-        { label: 'History', link: '/usersTable' },
+        { label: 'Add Book', link: '/addBook' },
+        { label: 'Orders', link: '/orders' },
+        { label: 'Books', link: '/bookList' },
         // { label: 'Log In', link: '/login' },
       ],
     },

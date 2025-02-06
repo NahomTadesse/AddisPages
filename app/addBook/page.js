@@ -97,32 +97,81 @@
 
 
 
-import { useState } from 'react';
-import { Autocomplete, TextInput, Button, Notification , Container,Title } from '@mantine/core';
+import { useEffect, useState } from 'react';
+import { Autocomplete, TextInput, Button, Notification ,
+  Container,Title ,FileInput,LoadingOverlay} from '@mantine/core';
 
-const BookForm = () => {
+import { IconBook, IconMoney, IconStock, IconDescription, IconGenre, IconUser, IconUpload } from '@tabler/icons-react'; 
+import { useDisclosure } from '@mantine/hooks';
+export default function BookForm() {
   const [title, setTitle] = useState('');
-  const [price, setPrice] = useState(0);
-  const [stock, setStock] = useState(0);
+  const [price, setPrice] = useState('');
+  const [stock, setStock] = useState(1);
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
   const [authorId, setAuthorId] = useState('');
   const [publisherId, setPublisherId] = useState('');
   const [error, setError] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [publisherArray , setPublisherArray] = useState([])
+  const [authorArray , setAuthotArray] = useState([])
 
-  const authors = [
-    { id: "e8ca4992-e50d-4e23-af60-df407c23689c", name: "test2" }
-  ];
+  const [publisher , setPublisher] = useState()
+  const [author , setAuthor] = useState()
+  const [visible, { toggle }] = useDisclosure(false);
 
-  const publishers = [
-    { id: "3aa57522-39ba-4db1-be8f-dc990aaf01f1", name: "string" },
-    { id: "40f0a3ea-709f-454f-a897-63e7a4337dee", name: "string" },
-    { id: "e0ebda1d-dc3c-4d9a-83fe-3576a25b69b9", name: "string" },
-    { id: "3b98788b-5c8d-4c44-98bb-83e16d88113e", name: "string" },
-    { id: "7a486ee9-c5f8-4a51-8019-043e5484cb98", name: "string" }
-  ];
+useEffect(()=>{
+  fetchAuthors();
+  fetchPublisher();
+},[])
 
-  const uniquePublisherNames = [...new Set(publishers.map(publisher => publisher.name))];
+  const fetchAuthors = async () => {
+    try {
+      const response = await fetch('https://books-api.addispages.com/api/v1/author', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log(data); 
+      setAuthotArray(data)
+    } catch (error) {
+      console.error('Error fetching authors:', error);
+    }
+  };
+
+  const fetchPublisher = async () => {
+    try {
+      const response = await fetch('https://books-api.addispages.com/api/v1/publisher', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log(data); 
+      setPublisherArray(data)
+    } catch (error) {
+      console.error('Error fetching authors:', error);
+    }
+  };
+  
+  const uniquePublisher = publisherArray.map(pub => ({
+    value: pub.id,
+    label: `${pub.name}` 
+}));
+
 
   const genres = ['horror', 'comedy', 'sifi'];
 
@@ -136,10 +185,11 @@ const BookForm = () => {
   };
 
   const handleSubmit = async (e) => {
+    console.log('heyyy',publisherId)
     e.preventDefault();
 
     if (!validateForm()) return;
-
+    toggle()
     const response = await fetch('https://books-api.addispages.com/api/v1/book', {
       method: 'POST',
       headers: {
@@ -153,20 +203,20 @@ const BookForm = () => {
         genre,
         authorId,
         publisherId,
+        profilePicture
       }),
     });
 
     const data = await response.json();
     console.log(data);
+    toggle()
   };
 
   return (
     <div style={{marginLeft:10,marginTop:45}}>
 
 <Container size={1000} my={0}>
-            <Title ta="left" >
-                ADD BOOK
-            </Title>
+      <Title ta="left">ADD BOOK</Title>
       {error && (
         <Notification color="red" title="Error" onClose={() => setError('')}>
           {error}
@@ -176,62 +226,92 @@ const BookForm = () => {
         <TextInput
           label="Title"
           value={title}
+          required
           onChange={(event) => setTitle(event.currentTarget.value)}
           placeholder="Enter book title"
-          style={{ maxWidth: 300,  marginTop:10 }}
+          rightSection={<IconBook size={20} />}
+          style={{ maxWidth: 300, marginTop: 10 }}
         />
         <TextInput
           label="Price"
           type="number"
           value={price}
+          required
           onChange={(event) => setPrice(event.currentTarget.value)}
           placeholder="Enter book price"
-          style={{ maxWidth: 300,  marginTop:10 }}
+          rightSection={<IconBook size={20} />}
+          style={{ maxWidth: 300, marginTop: 10 }}
         />
         <TextInput
           label="Stock"
           type="number"
           value={stock}
+          required
           onChange={(event) => setStock(event.currentTarget.value)}
           placeholder="Enter stock quantity"
-          style={{ maxWidth: 300,  marginTop:10 }}
+          rightSection={<IconBook size={20} />}
+          style={{ maxWidth: 300, marginTop: 10 }}
         />
         <TextInput
           label="Description"
           value={description}
+          required
           onChange={(event) => setDescription(event.currentTarget.value)}
           placeholder="Enter book description"
-          style={{ maxWidth: 300,  marginTop:10 }}
+          rightSection={<IconBook size={20} />}
+          style={{ maxWidth: 300, marginTop: 10 }}
         />
         <Autocomplete
           label="Genre"
           data={genres}
           value={genre}
+          required
           onChange={setGenre}
           placeholder="Select genre"
-          style={{ maxWidth: 300, marginTop:10}}
+          rightSection={<IconBook size={20} />}
+          style={{ maxWidth: 300, marginTop: 10 }}
         />
         <Autocomplete
           label="Author"
-          data={authors.map(author => author.name)}
-          value={authorId}
-          onChange={setAuthorId}
+          data={authorArray.map(author => author.name)}
+          value={author}
+          required
+          onChange={(value) => {
+            const selectedAuthor = authorArray.find(author => author.name === value);
+            setAuthorId(selectedAuthor ? selectedAuthor.id : '');
+            setAuthor(selectedAuthor ? selectedAuthor.name : '')
+          }}
           placeholder="Select author"
-          style={{ maxWidth: 300, marginTop:10 }}
+          rightSection={<IconUser size={20} />}
+          style={{ maxWidth: 300, marginTop: 10 }}
         />
         <Autocomplete
           label="Publisher"
-          data={uniquePublisherNames}
-          value={publisherId}
-          onChange={setPublisherId}
+          data={uniquePublisher}
+          value={publisher}
+          required
+          onChange={(value) => {
+            const selectedPublisher = uniquePublisher.find(pub => pub.label === value);
+            setPublisherId(selectedPublisher ? selectedPublisher.value : '');
+            setPublisher(selectedPublisher ? selectedPublisher.label : '')
+          }}
           placeholder="Select publisher"
+          rightSection={<IconUser size={20} />}
           style={{ maxWidth: 300, height: 50 }}
         />
-        <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 300, height: 50,marginTop:50 }}>Submit</Button>
+        <FileInput
+          label="Upload Book Cover"
+          placeholder="Upload picture"
+          accept="image/*"
+          onChange={setProfilePicture}
+          required
+          rightSection={<IconUpload size={20} />}
+          style={{ maxWidth: 300 }}
+        />
+        <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 300, height: 50, marginTop: 50 }}>Submit</Button>
       </form>
-      </Container>
+    </Container>
     </div>
   );
 };
 
-export default BookForm;
