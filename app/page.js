@@ -6,6 +6,7 @@ import {NavbarNested} from '../components/Navbar/NavbarNested'
 import {TableSort} from '../components/UserTable/TableSort'
 import Stat from './stat/page'
 import AuthenticationTitle from './login/page'
+import { UserProvider } from '../contexts/UserContext';
 
 export default function HomePage() {
   return (
@@ -13,7 +14,9 @@ export default function HomePage() {
       {/* <Welcome /> */}
       {/* <TableSort/> */}
       {/* <NavbarNested/> */}
+     
       {<AuthenticationTitle/>}
+     
       {/* <ColorSchemeToggle /> */}
 
     </>

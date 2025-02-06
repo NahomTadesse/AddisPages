@@ -11,6 +11,7 @@ import {
   import { LinksGroup } from '../NavbarLinksGroup/NavbarLinksGroup';
   import { UserButton } from '../UserButton/UserButton';
   import { Logo } from './Logo';
+  import { UserProvider } from '../../contexts/UserContext'
 
   import { ColorSchemeToggle } from '../ColorSchemeToggle/ColorSchemeToggle'
   
@@ -122,6 +123,7 @@ import {
   
     return (
       <nav className={classes.navbar}>
+       
         <div className={classes.header}>
           <Group justify="space-between">
             <div>Book Dashboard</div>
@@ -136,6 +138,7 @@ import {
         <div className={classes.footer}>
           <UserButton />
         </div>
+       
       </nav>
     );
   }
