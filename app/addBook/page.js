@@ -167,7 +167,7 @@ useEffect(()=>{
     }
   };
   
-  const uniquePublisher = publisherArray.map(pub => ({
+  const uniquePublisher = publisherArray && publisherArray.map(pub => ({
     value: pub.id,
     label: `${pub.name}` 
 }));
@@ -235,6 +235,42 @@ const genres = [
     console.log(data);
     toggle()
   };
+
+  const orderItem = async ()=>{
+    try {
+      const response = await fetch('https://books-api.addispages.com/api/v1/orderItem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization : "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuYWhvbXRhZGVzc2UxMUBnbWFpbC5jb20iLCJpYXQiOjE3MzkwNDg2MjMsImV4cCI6MTczOTEzNTAyM30.7no4AQe9_kLc7lewn7AFh1eVqFQ41cmeR4s07fW4pyc"
+        },
+        body: JSON.stringify(
+          [
+            {
+             
+              "quantity": 1,
+              "amount": 2,
+              "bookId": "9d734255-ad30-4c59-82ab-4959fd6e148d",
+              "unitPrice": 20,
+              "totalPrice": 20,
+              "userId": "88f7cbe7-214d-4512-8bc1-7dd1c34a0c16"
+              
+            }
+          ]
+        ),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log(data); 
+      setPublisherArray(data)
+    } catch (error) {
+      console.error('Error fetching authors:', error);
+    }
+  }
 
   return (
     <div style={{marginLeft:10,marginTop:45}}>
@@ -333,6 +369,8 @@ const genres = [
           style={{ maxWidth: 300 }}
         />
         <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 200, height: 50, marginTop: 20 }}>Create</Button>
+
+        <Button onClick={orderItem} style={{ gridColumn: 'span 2', maxWidth: 200, height: 50, marginTop: 20 }}>test</Button>
       </form>
     </Container>
     </div>

@@ -2,13 +2,13 @@
 import { useState } from 'react';
 import { TextInput, Button, Notification, Container, Title } from '@mantine/core';
 import { IconUser } from '@tabler/icons-react';
-
+import Cookies from 'js-cookie';
 export default function AuthorForm() {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [nationality, setNationality] = useState('');
   const [error, setError] = useState('');
-
+  const userD = JSON.parse(Cookies.get('userData'))
   const validateForm = () => {
     if (!name || !bio || !nationality) {
       setError('Please fill out all required fields correctly.');
@@ -39,6 +39,56 @@ export default function AuthorForm() {
     const data = await response.json();
     console.log(data);
   };
+
+
+  
+  const orderBook = async()=>{
+    const quantity = 1
+
+    try {
+        const response = await fetch('https://books-api.addispages.com/api/v1/orderItem', {
+            method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization : userD.access_token
+          },
+  body: JSON.stringify(
+    [
+        {
+         
+                  quantity:quantity,
+                  amount: 2,
+                  bookId: "9d734255-ad30-4c59-82ab-4959fd6e148d",
+                  unitPrice: 20,
+                  totalPrice: 20,
+                  userId: "88f7cbe7-214d-4512-8bc1-7dd1c34a0c16"
+         
+        }
+      ]
+
+),
+        
+        });
+    
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const responseData = await response.json();
+         if(responseData !=[]){
+           
+            // setBooks(responseData)
+        }
+       
+        console.log('User created successfully:', responseData);
+        
+    
+       
+      } catch (error) {
+        console.error('Error creating user:', error);
+        
+      
+      }
+}
 
   return (
     <div style={{ marginLeft: 10, marginTop: 45 }}>
@@ -78,6 +128,12 @@ export default function AuthorForm() {
             style={{ maxWidth: 300, marginTop: 10 }}
           />
           <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 200, height: 50, marginTop: 20 }}>
+            Create
+          </Button>
+
+
+
+          <Button onClick={orderBook} style={{ gridColumn: 'span 2', maxWidth: 200, height: 50, marginTop: 20 }}>
             Create
           </Button>
         </form>

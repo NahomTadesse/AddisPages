@@ -1,8 +1,8 @@
 "use client";
-import { Group, Table, ActionIcon, Text, Container, Title, TextInput } from '@mantine/core';
+import { Group, Table, ActionIcon, Text, Container, Title, TextInput, Button, LoadingOverlay,Box } from '@mantine/core';
 import { IconTrash, IconCheck, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
-import { useState } from 'react';
-
+import { useEffect, useState } from 'react';
+import Cookies from 'js-cookie';
 const initialBookings = [
   {
     bookName: 'The Great Gatsby',
@@ -43,7 +43,12 @@ export default function BookingTable() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+const [loading, setLoading] = useState(false);
+  const userD = JSON.parse(Cookies.get('userData'))
 
+  useEffect(()=>{
+    getOrders()
+  },[])
   const filteredBookings = bookings.filter(booking => {
     const lowerSearch = search.toLowerCase();
     return (
@@ -75,6 +80,89 @@ export default function BookingTable() {
     }
   };
 
+  const getOrders = async ()=>{
+  try {
+             const response = await fetch('https://books-api.addispages.com/api/v1/orderItem', {
+                
+                 headers: {
+                     'Content-Type': 'application/json',
+                     Authorization : userD.access_token
+                     
+                 },
+             
+             });
+     
+             if (!response.ok) {
+                 setLoading(false);
+                 
+               
+                 throw new Error('Network response was not ok');
+                 
+             }
+     
+             const responseData = await response.json();
+          console.log(responseData);
+             setLoading(false);
+             
+            
+         } catch (error) {
+             console.error('Error creating user:', error);
+           
+             setLoading(false);
+         } finally {
+             setLoading(false);
+         }
+  }
+
+  const orderBook = async()=>{
+    const quantity = 1
+console.log('accesstokem',userD.access_token)
+    try {
+        const response = await fetch('https://books-api.addispages.com/api/v1/orderItem', {
+            method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization : userD.access_token
+          },
+  body: JSON.stringify(
+    [
+        {
+         
+                  quantity:quantity,
+                  amount: 2,
+                  bookId: "9d734255-ad30-4c59-82ab-4959fd6e148d",
+                  unitPrice: 20,
+                  totalPrice: 20,
+                  userId: "88f7cbe7-214d-4512-8bc1-7dd1c34a0c16"
+         
+        }
+      ]
+
+),
+        
+        });
+    
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const responseData = await response.json();
+         if(responseData !=[]){
+           
+            // setBooks(responseData)
+        }
+       
+        console.log('User created successfully:', responseData);
+        
+    
+       
+      } catch (error) {
+        console.error('Error creating user:', error);
+        
+      
+      }
+}
+
+
   const rows = sortedBookings.map((booking, index) => (
     <Table.Tr key={index}>
       <Table.Td><Text fz="sm">{booking.bookName}</Text></Table.Td>
@@ -99,6 +187,13 @@ export default function BookingTable() {
   ));
 
   return (
+       <Box pos="relative">
+                <LoadingOverlay
+              visible={loading}
+              zIndex={1000}
+              overlayProps={{ radius: 'sm', blur: 2 }}
+              loaderProps={{ color: 'blue', type: 'bars' }}
+            />
     <Container style={{ maxWidth: '100%', margin: '0 auto', marginTop: 45 }}>
       <Title order={2} style={{ marginBottom: 10 }}>ORDERS</Title>
       <TextInput
@@ -140,6 +235,9 @@ export default function BookingTable() {
         </Table.Thead>
         <Table.Tbody>{rows}</Table.Tbody>
       </Table>
+
+
     </Container>
+    </Box>
   );
 }

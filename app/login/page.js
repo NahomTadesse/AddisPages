@@ -20,6 +20,7 @@ import {React,useState,useEffect} from 'react'
 import { useDisclosure } from '@mantine/hooks';
 import { useUser } from '../../contexts/UserContext'
 import useLocalStorage from '../../hooks/useLocalStorage'
+import Cookies from 'js-cookie';
 import { IconInfoCircle, IconUser } from '@tabler/icons-react';
 export default function AuthenticationTitle() {
 
@@ -43,6 +44,7 @@ export default function AuthenticationTitle() {
             return () => clearTimeout(timer); 
         }
     }, [errorVisible]);
+
 
     const handleSignIn = async () => {
         setLoading(true);
@@ -72,7 +74,8 @@ export default function AuthenticationTitle() {
             const responseData = await response.json();
             if(responseData.access_token){
                 console.log('User created successfully:', responseData);
-                setUserData(responseData); 
+                // setUserData(responseData); 
+                Cookies.set('userData', JSON.stringify(responseData), { expires: 7 }); 
 
                 setLoading(false);
                 // localStorage.setItem('userData', JSON.stringify(responseData));
@@ -130,6 +133,8 @@ export default function AuthenticationTitle() {
                 >
                     Sign in
                 </Button>
+
+
               { errorVisible && <Alert variant="light" color="red" radius="md" title="Alert title" icon={icon}>
                 Error Logging In
               </Alert>}

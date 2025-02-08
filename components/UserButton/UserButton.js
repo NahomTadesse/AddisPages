@@ -4,10 +4,16 @@ import { Avatar, Group, Text, UnstyledButton } from '@mantine/core';
 import classes from './UserButton.module.css';
 import { useUser } from '../../contexts/UserContext'
 import useLocalStorage from '../../hooks/useLocalStorage'
+import Cookies from 'js-cookie';
+import { useEffect } from 'react';
 export function UserButton() {
   
   const [userData] = useLocalStorage('userData', {});
-  console.log('serr',userData)
+  // console.log('serr',userData)
+  const userD = JSON.parse(Cookies.get('userData'))
+  useEffect(()=>{
+    console.log('dataaa',userD.phoneNumber)
+  },[])
   // const savedData = localStorage.getItem('userData');
   return (
     <UnstyledButton className={classes.user}>
@@ -19,12 +25,14 @@ export function UserButton() {
 
         <div style={{ flex: 1 }}>
           <Text size="sm" fw={500}>
-          {userData ? userData.username : 'Guest'}
+          {/* {userData ? userData.username : 'Guest'} */}
+          {Cookies.get('userData') ?  userD.phoneNumber  : 'Guest'}
           
           </Text>
 
           <Text c="dimmed" size="xs">
-          {userData ? userData.username : 'Guest'}
+          {/* {userData ? userData.username : 'Guest'} */}
+          {Cookies.get('userData') ?  userD.phoneNumber  : 'Guest'}
           </Text>
         </div>
 
