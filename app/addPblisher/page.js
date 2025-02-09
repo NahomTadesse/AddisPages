@@ -1,8 +1,8 @@
 "use client";
 import { useState } from 'react';
-import { TextInput, Button, Notification, Container, Title } from '@mantine/core';
-import { IconUser ,IconMail , IconPhone , IconAddressBook , IconBook, IconPhoneCall, IconHome, IconHome2 } from '@tabler/icons-react';
-
+import { TextInput, Button,LoadingOverlay ,Box ,Notification, Container, Title } from '@mantine/core';
+import { IconUser ,IconMail  ,IconPhone , IconAddressBook , IconBook, IconPhoneCall, IconHome, IconHome2 } from '@tabler/icons-react';
+import Cookies from 'js-cookie';
 export default function PublisherForm() {
   const [name, setName] = useState('');
   const [currentAddress, setCurrentAddress] = useState('');
@@ -12,6 +12,8 @@ export default function PublisherForm() {
   const [idDocumentUrl, setIdDocumentUrl] = useState('');
   const [addressType, setAddressType] = useState('');
   const [error, setError] = useState('');
+  const userD = JSON.parse(Cookies.get('userData'))
+const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     if (!name || !currentAddress || !phoneNumber || !email || !addressType) {
@@ -27,29 +29,42 @@ export default function PublisherForm() {
 
     if (!validateForm()) return;
 
+    setLoading(true)
     const response = await fetch('https://books-api.addispages.com/api/v1/publisher', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization : userD.access_token
       },
       body: JSON.stringify({
-        name,
+        name : name,
         address: {
-          currentAddress,
-          permanentAddress,
-          phoneNumber,
-          email,
-          idDocumentUrl,
-          addressType,
+          currentAddress : currentAddress,
+          permanentAddress : permanentAddress,
+          phoneNumber : phoneNumber,
+          email : email,
+          idDocumentUrl : idDocumentUrl,
+          addressType : addressType,
         },
       }),
     });
 
     const data = await response.json();
     console.log(data);
+    setLoading(false)
   };
 
   return (
+
+
+       <Box pos="relative">
+                <LoadingOverlay
+              visible={loading}
+              zIndex={1000}
+              overlayProps={{ radius: 'sm', blur: 2 }}
+              loaderProps={{ color: 'blue', type: 'bars' }}
+            />
+
     <div style={{ marginLeft: 10, marginTop: 45 }}>
       <Container size={1000} my={0}>
         <Title ta="left">ADD PUBLISHER</Title>
@@ -126,5 +141,6 @@ export default function PublisherForm() {
         </form>
       </Container>
     </div>
+    </Box>
   );
 }

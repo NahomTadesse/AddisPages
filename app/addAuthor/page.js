@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { TextInput, Button, Notification, Container, Title } from '@mantine/core';
+import { TextInput, Button, Notification, Container, Title,LoadingOverlay,Box } from '@mantine/core';
 import { IconUser } from '@tabler/icons-react';
 import Cookies from 'js-cookie';
 export default function AuthorForm() {
@@ -9,6 +9,9 @@ export default function AuthorForm() {
   const [nationality, setNationality] = useState('');
   const [error, setError] = useState('');
   const userD = JSON.parse(Cookies.get('userData'))
+
+  const [loading, setLoading] = useState(false);
+
   const validateForm = () => {
     if (!name || !bio || !nationality) {
       setError('Please fill out all required fields correctly.');
@@ -23,21 +26,24 @@ export default function AuthorForm() {
 
     if (!validateForm()) return;
 
+    setLoading(true)
+
     const response = await fetch('https://books-api.addispages.com/api/v1/author', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_ACCESS_TOKEN', // Replace with your actual token
+        Authorization : userD.access_token
       },
       body: JSON.stringify({
-        name,
-        bio,
-        nationality,
+        name : name,
+        bio : bio,
+        nationality : nationality,
       }),
     });
 
     const data = await response.json();
     console.log(data);
+    setLoading(false)
   };
 
 
@@ -91,6 +97,14 @@ export default function AuthorForm() {
 }
 
   return (
+
+    <Box pos="relative">
+    <LoadingOverlay
+  visible={loading}
+  zIndex={1000}
+  overlayProps={{ radius: 'sm', blur: 2 }}
+  loaderProps={{ color: 'blue', type: 'bars' }}
+/>
     <div style={{ marginLeft: 10, marginTop: 45 }}>
       <Container size={1000} my={0}>
         <Title ta="left">ADD AUTHOR</Title>
@@ -139,5 +153,6 @@ export default function AuthorForm() {
         </form>
       </Container>
     </div>
+    </Box>
   );
 }
