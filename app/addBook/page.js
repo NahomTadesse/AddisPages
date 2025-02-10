@@ -191,7 +191,7 @@ const genres = [
   
  
     formData.append('book', JSON.stringify(bookData));
-  
+  console.log('bookdata', JSON.stringify(bookData))
     
     if (profilePicture) {
       formData.append('photos', profilePicture);
@@ -204,7 +204,7 @@ const genres = [
       const response = await fetch('https://books-api.addispages.com/api/v1/book', {
         method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+       
           Authorization:userD.access_token ,
           
         },
