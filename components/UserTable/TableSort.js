@@ -92,6 +92,7 @@ export function TableSort() {
       }
 
       const fetchedData = await response.json();
+      console.log(fetchedData)
       setData(fetchedData);
       setSortedData(fetchedData);
     } catch (error) {
