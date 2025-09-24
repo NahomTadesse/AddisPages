@@ -1,4 +1,4 @@
-import { createBooksAuthenticatedFetch, BOOKS_API_URL } from './baseApiService';
+import { createAuthenticatedFetch, BOOKS_API_BASE_URL } from './baseApiService';
 
 export interface Book {
   id: string;
@@ -11,7 +11,7 @@ export interface Book {
   // Add other book properties as needed
 }
 
-const authFetch = createBooksAuthenticatedFetch();
+const authFetch = createAuthenticatedFetch();
 
 const transformBookFromAPI = (bookData: any): Book => {
   return {
@@ -27,7 +27,7 @@ const transformBookFromAPI = (bookData: any): Book => {
 
 export const fetchBooks = async (): Promise<Book[]> => {
   try {
-    const response = await authFetch(`${BOOKS_API_URL}/book`);
+    const response = await authFetch(`${BOOKS_API_BASE_URL}/book`);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -44,7 +44,7 @@ export const fetchBooks = async (): Promise<Book[]> => {
 
 export const fetchBookById = async (bookId: string): Promise<Book | null> => {
   try {
-    const response = await authFetch(`${BOOKS_API_URL}/book/${bookId}`);
+    const response = await authFetch(`${BOOKS_API_BASE_URL}/book/${bookId}`);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -61,7 +61,7 @@ export const fetchBookById = async (bookId: string): Promise<Book | null> => {
 
 export const addBook = async (bookData: Omit<Book, 'id'>): Promise<Book | null> => {
   try {
-    const response = await authFetch(`${BOOKS_API_URL}/book`, {
+    const response = await authFetch(`${BOOKS_API_BASE_URL}/book`, {
       method: 'POST',
       body: JSON.stringify(bookData),
     });
@@ -81,7 +81,7 @@ export const addBook = async (bookData: Omit<Book, 'id'>): Promise<Book | null> 
 
 export const updateBook = async (bookId: string, bookData: Partial<Book>): Promise<Book | null> => {
   try {
-    const response = await authFetch(`${BOOKS_API_URL}/book/${bookId}`, {
+    const response = await authFetch(`${BOOKS_API_BASE_URL}/book/${bookId}`, {
       method: 'PUT',
       body: JSON.stringify(bookData),
     });
@@ -101,7 +101,7 @@ export const updateBook = async (bookId: string, bookData: Partial<Book>): Promi
 
 export const deleteBook = async (bookId: string): Promise<boolean> => {
   try {
-    const response = await authFetch(`${BOOKS_API_URL}/book/${bookId}`, {
+    const response = await authFetch(`${BOOKS_API_BASE_URL}/book/${bookId}`, {
       method: 'DELETE',
     });
     
@@ -119,7 +119,7 @@ export const deleteBook = async (bookId: string): Promise<boolean> => {
 
 export const searchBooks = async (searchTerm: string): Promise<Book[]> => {
   try {
-    const response = await authFetch(`${BOOKS_API_URL}/book/search?q=${encodeURIComponent(searchTerm)}`);
+    const response = await authFetch(`${BOOKS_API_BASE_URL}/book/search?q=${encodeURIComponent(searchTerm)}`);
     
     if (!response.ok) {
       const errorText = await response.text();
