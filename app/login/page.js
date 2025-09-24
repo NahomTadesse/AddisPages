@@ -11,48 +11,44 @@ import {
     TextInput,
     Title,
     LoadingOverlay,
-     Box,
-     Alert
+    Box,
+    Alert
 } from '@mantine/core';
 import classes from './AuthenticationTitle.module.css';
 import { useRouter } from 'next/navigation';
-import {React,useState,useEffect} from 'react'
+import { useState, useEffect } from 'react';
 import { useDisclosure } from '@mantine/hooks';
-import { useUser } from '../../contexts/UserContext'
-import useLocalStorage from '../../hooks/useLocalStorage'
-import Cookies from 'js-cookie';
 import { IconInfoCircle, IconUser } from '@tabler/icons-react';
-export default function AuthenticationTitle() {
+import tokenService from '../services/tokenService';
+import { BOOKS_API_BASE_URL } from '../services/baseApiService';
 
+export default function AuthenticationTitle() {
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [visible, { toggle }] = useDisclosure(false);
     const [loading, setLoading] = useState(false);
-    const [errorVisible, setErrorVisible] = useState(false);
-    // const { setUserData } = useUser();
-    const [userData, setUserData] = useLocalStorage('userData', {});
-    const [alert, setAlert] = useState({ visible: false, message: '', color: '' });
+    const [error, setError] = useState('');
     const icon = <IconInfoCircle />;
     const router = useRouter();
 
     useEffect(() => {
-        if (errorVisible) {
+        if (error) {
             const timer = setTimeout(() => {
-                setErrorVisible(false);
-            }, 1000);
+                setError('');
+            }, 5000);
 
             return () => clearTimeout(timer); 
         }
-    }, [errorVisible]);
+    }, [error]);
 
-
-    const handleSignIn = async () => {
+    const handleLogin = async () => {
+        setError('');
         setLoading(true);
-        console.log('Phone:', phone);
-        console.log('Password:', password);
-        
+        console.log('🔐 Starting login process...');
+
         try {
-            const response = await fetch('https://books-api.addispages.com/api/v1/auth/login', {
+            console.log('📤 Sending login request with phone:', phone);
+            const response = await fetch(`${BOOKS_API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -62,84 +58,107 @@ export default function AuthenticationTitle() {
                     password: password,
                 }),
             });
-    
-            if (!response.ok) {
-                setLoading(false);
-                setErrorVisible(true)
-              
-                throw new Error('Network response was not ok');
-                
-            }
-    
-            const responseData = await response.json();
-            if(responseData.access_token){
-                console.log('User created successfully:', responseData);
-                // setUserData(responseData); 
-                Cookies.set('userData', JSON.stringify(responseData), { expires: 7 }); 
 
-                setLoading(false);
-                // localStorage.setItem('userData', JSON.stringify(responseData));
-                router.push('/stat'); 
+            console.log('📥 Login response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Login failed with response:', errorText);
+                throw new Error(`Login failed: ${response.status} - ${errorText || 'Unknown error'}`);
             }
-            else{
-                setErrorVisible(true)
-            }
-            setLoading(false);
+
+            const data = await response.json();
+            console.log('✅ Login successful, received data:', data);
             
-           
-        } catch (error) {
-            console.error('Error creating user:', error);
-            setErrorVisible(true)
-            setLoading(false);
+            if (data.access_token) {
+                console.log('🔑 Setting auth data with token...');
+                tokenService.setAuthData(data);
+                console.log('🚀 Navigating to /stat...');
+                router.push('/stat');
+            } else {
+                console.error('❌ No access token in response:', data);
+                throw new Error('No access token received from server');
+            }
+        } catch (err) {
+            console.error('💥 Login error:', err);
+            setError(err.message || 'An error occurred during login');
         } finally {
             setLoading(false);
         }
     };
 
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        handleLogin();
+    };
+
     return (
         <Box pos="relative">
             <LoadingOverlay
-          visible={loading}
-          zIndex={1000}
-          overlayProps={{ radius: 'sm', blur: 2 }}
-          loaderProps={{ color: 'blue', type: 'bars' }}
-        />
-        <Container size={420} my={40}>
-            <Title ta="center" className={classes.title}>
-                Welcome back!
-            </Title>
+                visible={loading}
+                zIndex={1000}
+                overlayProps={{ radius: 'sm', blur: 2 }}
+                loaderProps={{ color: 'blue', type: 'bars' }}
+            />
+            <Container size={420} my={40}>
+                <Title ta="center" className={classes.title}>
+                    Welcome back!
+                </Title>
 
-            <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-                <TextInput label="Phone Number" value={phone}
-                 onChange={(e) => setPhone(e.target.value)}
-                 rightSection={<IconUser size={20} />}
-                placeholder="your number" required />
-                
-                <PasswordInput label="Password" value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+                    <form onSubmit={handleSubmit}>
+                        <TextInput 
+                            label="Phone Number" 
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            rightSection={<IconUser size={20} />}
+                            placeholder="your number" 
+                            required 
+                            mb="md"
+                        />
+                        
+                        <PasswordInput 
+                            label="Password" 
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Your password" 
+                            required 
+                            visible={visible}
+                            onVisibilityChange={toggle}
+                            mb="md"
+                        />
 
-                placeholder="Your password" required mt="md" />
+                        {error && (
+                            <Alert 
+                                variant="light" 
+                                color="red" 
+                                radius="md" 
+                                mb="md"
+                                icon={icon}
+                            >
+                                {error}
+                            </Alert>
+                        )}
 
-                <Group justify="space-between" mt="lg">
-                    <Checkbox label="Remember me" />
-                    <Anchor component="button" size="sm">
-                        Forgot password?
-                    </Anchor>
-                </Group>
-                <Button
-                    onClick={handleSignIn}
-                    fullWidth
-                    mt="xl"
-                >
-                    Sign in
-                </Button>
-
-
-              { errorVisible && <Alert variant="light" color="red" radius="md" title="Alert title" icon={icon}>
-                Error Logging In
-              </Alert>}
-            </Paper>
-        </Container>
+                        <Group justify="space-between" mt="lg">
+                            <Checkbox label="Remember me" />
+                            <Anchor component="button" size="sm" href="#" onClick={(e) => e.preventDefault()}>
+                                Forgot password?
+                            </Anchor>
+                        </Group>
+                        
+                        <Button
+                            type="submit"
+                            fullWidth
+                            mt="xl"
+                            disabled={!phone || !password || loading}
+                            loading={loading}
+                        >
+                            {loading ? 'Logging in...' : 'Sign In'}
+                        </Button>
+                    </form>
+                </Paper>
+            </Container>
         </Box>
     );
 }

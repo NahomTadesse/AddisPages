@@ -10,10 +10,10 @@ export function UserButton() {
   
   const [userData] = useLocalStorage('userData', {});
   // console.log('serr',userData)
-  const userD = JSON.parse(Cookies.get('userData'))
-  useEffect(()=>{
-    console.log('dataaa',userD.phoneNumber)
-  },[])
+  // const userD = JSON.parse(Cookies.get('userData'))
+  // useEffect(()=>{
+  //   console.log('dataaa',userD.phoneNumber)
+  // },[])
   // const savedData = localStorage.getItem('userData');
   return (
     <UnstyledButton className={classes.user}>
@@ -26,13 +26,13 @@ export function UserButton() {
         <div style={{ flex: 1 }}>
           <Text size="sm" fw={500}>
           {/* {userData ? userData.username : 'Guest'} */}
-          {Cookies.get('userData') ?  userD.phoneNumber  : 'Guest'}
+          {/* {Cookies.get('userData') ?  userD.phoneNumber  : 'Guest'} */}
           
           </Text>
 
           <Text c="dimmed" size="xs">
           {/* {userData ? userData.username : 'Guest'} */}
-          {Cookies.get('userData') ?  userD.phoneNumber  : 'Guest'}
+          {/* {Cookies.get('userData') ?  userD.phoneNumber  : 'Guest'} */}
           </Text>
         </div>
 
