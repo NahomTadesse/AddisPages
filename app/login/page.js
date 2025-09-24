@@ -142,9 +142,9 @@ export default function AuthenticationTitle() {
 
                         <Group justify="space-between" mt="lg">
                             <Checkbox label="Remember me" />
-                            <Anchor component="button" size="sm" href="#" onClick={(e) => e.preventDefault()}>
+                            {/* <Anchor component="button" size="sm" href="#" onClick={(e) => e.preventDefault()}>
                                 Forgot password?
-                            </Anchor>
+                            </Anchor> */}
                         </Group>
                         
                         <Button
