@@ -14,7 +14,9 @@ import {
   IconDotsVertical, 
   IconEye, 
   IconBook,
-  IconUser
+  IconUser,
+  IconMail,
+  IconPhone
 } from '@tabler/icons-react';
 import {
   Center,
@@ -34,9 +36,7 @@ import {
   Pagination,
   Modal,
   TextInput as MantineTextInput,
-  Select,
   Paper,
-  Badge,
   Avatar,
   Stack,
   Divider
@@ -45,6 +45,23 @@ import { authenticatedFetch, BOOKS_API_BASE_URL, setNavigation } from '../../app
 import { useRouter } from 'next/navigation';
 import { useDisclosure } from '@mantine/hooks';
 import classes from './TableSort.module.css';
+
+// Function to sanitize input to prevent script injection and HTML tags
+const sanitizeInput = (input) => {
+  if (!input) return input;
+  return input
+    .replace(/<[^>]*>/g, '') // Remove all HTML tags
+    .replace(/&[^;]+;/g, '') // Remove HTML entities
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+="[^"]*"/gi, ''); // Remove event attributes
+};
+
+// Function to validate if input contains HTML or JavaScript
+const containsHtmlOrJs = (input) => {
+  if (!input) return false;
+  const htmlJsRegex = /<|>|\bon\w+=|javascript:/i;
+  return htmlJsRegex.test(input);
+};
 
 function Th({ children, reversed, sorted, onSort }) {
   const Icon = sorted ? (reversed ? IconChevronUp : IconChevronDown) : IconSelector;
@@ -142,19 +159,19 @@ export default function AuthorsTable() {
 
   // Set up navigation for the auth service
   useEffect(() => {
-    console.log('📚 Authors page loaded, setting up navigation...');
+ 
     setNavigation((path) => {
-      console.log('📍 Authors navigation to:', path);
+    
       router.push(path);
     });
   }, [router]);
 
   useEffect(() => {
-    console.log('📚 Authors page initialized, fetching data...');
+  
     fetchAuthors();
   }, []);
 
-  // Reset to first page when search changes
+
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
@@ -162,15 +179,15 @@ export default function AuthorsTable() {
   const fetchAuthors = async () => {
     setLoading(true);
     setError(null);
-    console.log('🔄 Starting authors fetch...');
+ 
     
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/author/all`);
-      console.log('📥 Author fetch response status:', response.status);
+    
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Author fetch failed:', { status: response.status, error: errorText });
+      
         
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
@@ -179,29 +196,96 @@ export default function AuthorsTable() {
       }
 
       const fetchedData = await response.json();
-      console.log('✅ Authors fetched successfully:', fetchedData);
+      
       
       if (Array.isArray(fetchedData)) {
         setData(fetchedData);
         setSortedData(fetchedData);
-        console.log(`📊 Loaded ${fetchedData.length} authors`);
+     
       } else {
-        console.warn('⚠️ Expected array but got:', fetchedData);
+   
         setData([]);
         setSortedData([]);
         setError('Invalid response format from server');
       }
     } catch (error) {
-      console.error('💥 Error fetching authors:', error);
+   
       setError(error.message || 'Failed to fetch authors');
       
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+   
         return;
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Validation function for author form
+  const validateForm = () => {
+    if (!editingAuthor.firstName) {
+      setNotification({ message: 'First name is required.', type: 'error' });
+      return false;
+    }
+    if (editingAuthor.firstName.length > 50) {
+      setNotification({ message: 'First name must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingAuthor.firstName)) {
+      setNotification({ message: 'First name cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (!editingAuthor.lastName) {
+      setNotification({ message: 'Last name is required.', type: 'error' });
+      return false;
+    }
+    if (editingAuthor.lastName.length > 50) {
+      setNotification({ message: 'Last name must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingAuthor.lastName)) {
+      setNotification({ message: 'Last name cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (!editingAuthor.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editingAuthor.email)) {
+      setNotification({ message: 'A valid email is required.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingAuthor.email)) {
+      setNotification({ message: 'Email cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (!editingAuthor.phoneNumber) {
+      setNotification({ message: 'Phone number is required.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingAuthor.phoneNumber)) {
+      setNotification({ message: 'Phone number cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (!editingAuthor.nationality) {
+      setNotification({ message: 'Nationality is required.', type: 'error' });
+      return false;
+    }
+    if (editingAuthor.nationality.length > 50) {
+      setNotification({ message: 'Nationality must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingAuthor.nationality)) {
+      setNotification({ message: 'Nationality cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingAuthor.bio && editingAuthor.bio.length > 500) {
+      setNotification({ message: 'Biography must be 500 characters or less.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingAuthor.bio)) {
+      setNotification({ message: 'Biography cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    
+    setNotification({ message: '', type: '' });
+    return true;
   };
 
   // Pagination logic
@@ -220,36 +304,41 @@ export default function AuthorsTable() {
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget;
-    setSearch(value);
+    setSearch(sanitizeInput(value)); // Sanitize search input
     setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value }));
   };
 
   const handleRefresh = () => {
-    console.log('🔄 Manual refresh triggered for authors');
+  
     fetchAuthors();
   };
 
   const handleCreateNew = () => {
-    console.log('➕ Navigate to create author');
-    router.push('/authors/create');
+ 
+    router.push('/addAuthor');
   };
 
   const handleViewDetails = (authorId) => {
-    console.log('👁️ Navigate to author details:', authorId);
+   
     router.push(`/authors/${authorId}`);
   };
 
   const handleEdit = (author) => {
-    console.log('✏️ Edit author:', author.id);
+  
     setEditingAuthor({
       ...author,
-      bio: author.bio || ''
+      firstName: author.firstName || '',
+      lastName: author.lastName || '',
+      email: author.email || '',
+      phoneNumber: author.phoneNumber || '',
+      bio: author.bio || '',
+      nationality: author.nationality || ''
     });
     openEdit();
   };
 
   const handleDelete = (authorId, authorName) => {
-    console.log('🗑️ Delete author:', authorId);
+   
     setDeleteAuthorId(authorId);
     setNotification({ message: `Delete "${authorName}"?`, type: 'warning' });
     openDelete();
@@ -259,32 +348,35 @@ export default function AuthorsTable() {
     if (!deleteAuthorId) return;
     
     setDeleteLoading(true);
-    console.log('🗑️ Confirming author deletion:', deleteAuthorId);
+   
     
     try {
-      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/author/${deleteAuthorId}`, {
+      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/author/delete?id=${deleteAuthorId}`, {
         method: 'DELETE',
+        headers: {
+          'accept': '*/*'
+        }
       });
       
-      console.log('📥 Delete response status:', response.status);
+   
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Delete failed:', { status: response.status, error: errorText });
+      
         throw new Error(`Failed to delete author: ${response.status} - ${errorText}`);
       }
       
-      console.log('✅ Author deleted successfully');
+   
       setNotification({ message: 'Author deleted successfully!', type: 'success' });
       closeDelete();
       setCurrentPage(1);
       fetchAuthors(); // Refresh the list
     } catch (error) {
-      console.error('💥 Delete error:', error);
+    
       setNotification({ message: `Error deleting author: ${error.message}`, type: 'error' });
       
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+   
         return;
       }
     } finally {
@@ -295,48 +387,60 @@ export default function AuthorsTable() {
   const handleUpdate = async () => {
     if (!editingAuthor) return;
     
+    if (!validateForm()) {
+    
+      return;
+    }
+
     setUpdateLoading(true);
-    console.log('✏️ Updating author:', editingAuthor.id);
+   
     
     const updateData = {
-      id: editingAuthor.id,
-      name: editingAuthor.name.trim(),
-      bio: editingAuthor.bio.trim(),
-      nationality: editingAuthor.nationality.trim()
+      author: {
+        id: editingAuthor.id,
+        firstName: sanitizeInput(editingAuthor.firstName.trim()),
+        lastName: sanitizeInput(editingAuthor.lastName.trim()),
+        email: sanitizeInput(editingAuthor.email.trim()),
+        phoneNumber: sanitizeInput(editingAuthor.phoneNumber.trim()),
+        bio: sanitizeInput(editingAuthor.bio.trim()),
+        nationality: sanitizeInput(editingAuthor.nationality.trim())
+      },
+      photos: editingAuthor.photos || null
     };
     
-    console.log('📋 Update data:', updateData);
+  
     
     try {
-      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/author/${editingAuthor.id}`, {
+      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/author/update`, {
         method: 'PUT',
         headers: {
+          'accept': '*/*',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updateData),
       });
       
-      console.log('📥 Update response status:', response.status);
+  
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Update failed:', { status: response.status, error: errorText });
+     
         throw new Error(`Failed to update author: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('✅ Author updated successfully:', data);
-      setNotification({ message: `Author "${editingAuthor.name}" updated successfully!`, type: 'success' });
+   
+      setNotification({ message: `Author "${sanitizeInput(editingAuthor.firstName)} ${sanitizeInput(editingAuthor.lastName)}" updated successfully!`, type: 'success' });
       closeEdit();
       setEditingAuthor(null);
       setCurrentPage(1);
       fetchAuthors(); // Refresh the list
     } catch (error) {
-      console.error('💥 Update error:', error);
+    
       setNotification({ message: `Error updating author: ${error.message}`, type: 'error' });
       
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+      
         return;
       }
     } finally {
@@ -347,12 +451,13 @@ export default function AuthorsTable() {
   const handleCancelEdit = () => {
     setEditingAuthor(null);
     closeEdit();
+    setNotification({ message: '', type: '' }); // Clear any validation errors
   };
 
   const handleInputChange = (field, value) => {
     setEditingAuthor(prev => ({
       ...prev,
-      [field]: value
+      [field]: sanitizeInput(value)
     }));
   };
 
@@ -420,25 +525,7 @@ export default function AuthorsTable() {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown style={{ border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-              <Menu.Item 
-                leftSection={<IconEye size={14} color="#64748b" />}
-                onClick={() => handleViewDetails(row.id)}
-                styles={{
-                  item: {
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    '&:hover': {
-                      backgroundColor: '#f1f5f9',
-                      color: '#1e293b',
-                    },
-                  },
-                  leftSection: {
-                    marginRight: '8px',
-                  },
-                }}
-              >
-                View Details
-              </Menu.Item>
+           
               <Menu.Item 
                 leftSection={<IconEdit size={14} color="#64748b" />}
                 onClick={() => handleEdit(row)}
@@ -462,7 +549,7 @@ export default function AuthorsTable() {
               <Menu.Item 
                 leftSection={<IconTrash size={14} color="#ef4444" />}
                 color="red"
-                onClick={() => handleDelete(row.id, row.name)}
+                onClick={() => handleDelete(row.id, `${row.firstName} ${row.lastName}`)}
                 styles={{
                   item: {
                     padding: '8px 12px',
@@ -829,19 +916,41 @@ export default function AuthorsTable() {
         {editingAuthor && (
           <Box component="form" onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}>
             <Stack gap="md">
+              {notification.message && editModal && (
+                <Paper
+                  style={{
+                    backgroundColor: notification.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                    border: `1px solid ${notification.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <Group gap="xs">
+                    {notification.type === 'error' && <IconTrash size={18} color="#dc2626" />}
+                    <Text size="sm" fw={500} style={{ 
+                      color: notification.type === 'error' ? '#991b1b' : '#166534'
+                    }}>
+                      {notification.message}
+                    </Text>
+                  </Group>
+                </Paper>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-                    Author Name *
+                    First Name *
                   </Text>
                   <MantineTextInput
-                    value={editingAuthor.name || ''}
-                    onChange={(e) => handleInputChange('name', e.currentTarget.value)}
-                    placeholder="Enter author name"
+                    value={editingAuthor.firstName || ''}
+                    onChange={(e) => handleInputChange('firstName', e.currentTarget.value)}
+                    placeholder="Enter first name"
                     size="md"
                     radius="md"
                     required
                     disabled={updateLoading}
+                    maxLength={50}
+                    rightSection={<IconUser size={16} />}
                     styles={{
                       input: {
                         border: '1px solid #d1d5db',
@@ -854,7 +963,82 @@ export default function AuthorsTable() {
                     }}
                   />
                 </div>
-                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Last Name *
+                  </Text>
+                  <MantineTextInput
+                    value={editingAuthor.lastName || ''}
+                    onChange={(e) => handleInputChange('lastName', e.currentTarget.value)}
+                    placeholder="Enter last name"
+                    size="md"
+                    radius="md"
+                    required
+                    disabled={updateLoading}
+                    maxLength={50}
+                    rightSection={<IconUser size={16} />}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Email *
+                  </Text>
+                  <MantineTextInput
+                    value={editingAuthor.email || ''}
+                    onChange={(e) => handleInputChange('email', e.currentTarget.value)}
+                    placeholder="Enter email"
+                    size="md"
+                    radius="md"
+                    required
+                    disabled={updateLoading}
+                    rightSection={<IconMail size={16} />}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Phone Number *
+                  </Text>
+                  <MantineTextInput
+                    value={editingAuthor.phoneNumber || ''}
+                    onChange={(e) => handleInputChange('phoneNumber', e.currentTarget.value)}
+                    placeholder="Enter phone number"
+                    size="md"
+                    radius="md"
+                    required
+                    disabled={updateLoading}
+                    rightSection={<IconPhone size={16} />}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
                 <div>
                   <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
                     Nationality *
@@ -867,6 +1051,8 @@ export default function AuthorsTable() {
                     radius="md"
                     required
                     disabled={updateLoading}
+                    maxLength={50}
+                    rightSection={<IconUser size={16} />}
                     styles={{
                       input: {
                         border: '1px solid #d1d5db',
@@ -879,7 +1065,6 @@ export default function AuthorsTable() {
                     }}
                   />
                 </div>
-                
                 <div style={{ gridColumn: '1 / -1' }}>
                   <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
                     Biography
@@ -891,6 +1076,9 @@ export default function AuthorsTable() {
                     size="md"
                     radius="md"
                     disabled={updateLoading}
+                    maxLength={500}
+                    multiline
+                    rows={4}
                     styles={{
                       input: {
                         border: '1px solid #d1d5db',

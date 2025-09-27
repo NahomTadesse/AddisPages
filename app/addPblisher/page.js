@@ -1,220 +1,44 @@
-// "use client";
-
-// import { useState } from 'react';
-// import { TextInput, Button, LoadingOverlay, FileInput, Box, Notification, Container, Title } from '@mantine/core';
-// import { IconUser, IconMail, IconPhone, IconAddressBook, IconBook, IconPhoneCall, IconHome, IconHome2, IconUpload } from '@tabler/icons-react';
-// import Cookies from 'js-cookie';
-
-// export default function PublisherForm() {
-//   const [name, setName] = useState('');
-//   const [currentAddress, setCurrentAddress] = useState('');
-//   const [permanentAddress, setPermanentAddress] = useState('');
-//   const [phoneNumber, setPhoneNumber] = useState('');
-//   const [email, setEmail] = useState('');
-//   const [idDocumentUrl, setIdDocumentUrl] = useState('');
-//   const [addressType, setAddressType] = useState('');
-//   const [error, setError] = useState('');
-//   const userD = JSON.parse(Cookies.get('userData'));
-//   const [profilePicture, setProfilePicture] = useState(null);
-//   const [loading, setLoading] = useState(false);
-//   const [notification, setNotification] = useState({ message: '', type: '' });
-
-//   const validateForm = () => {
-//     if (!name || !currentAddress || !phoneNumber || !email || !addressType) {
-//       setError('Please fill out all required fields correctly.');
-//       return false;
-//     }
-//     setError('');
-//     return true;
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     if (!validateForm()) return;
-
-//     setLoading(true);
-
-//     const formData = new FormData();
-//     const publisherData = {
-//       name: name,
-//       address: {
-//         currentAddress: currentAddress,
-//         permanentAddress: permanentAddress,
-//         phoneNumber: phoneNumber,
-//         email: email,
-//         idDocumentUrl: idDocumentUrl,
-//         addressType: addressType,
-//       },
-//     };
-
-//     const publisherBlob = new Blob([JSON.stringify(publisherData)], {
-//       type: "application/json",
-//     });
-
-//     formData.append("publisher", publisherBlob, "publisher.json");
-
-//     if (profilePicture) {
-//       formData.append("photos", profilePicture);
-//     } else {
-//       console.error('No document file selected.');
-//       setLoading(false);
-//       return;
-//     }
-
-//     try {
-//       const response = await fetch('https://books-api.addispages.com/api/v1/publisher', {
-//         method: 'POST',
-//         headers: {
-//           Authorization: `Bearer ${userD.access_token}`,
-//         },
-//         body: formData,
-//       });
-
-//       if (!response.ok) {
-//         const errorText = await response.text();
-//         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-//       }
-
-//       const data = await response.json();
-//       console.log('Success:', data);
-//       setNotification({ message: 'Publisher created successfully!', type: 'success' });
-//     } catch (error) {
-//       console.error('Error:', error);
-//       setNotification({ message: `Error: ${error.message}`, type: 'error' });
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <Box pos="relative">
-//       <LoadingOverlay
-//         visible={loading}
-//         zIndex={1000}
-//         overlayProps={{ radius: 'sm', blur: 2 }}
-//         loaderProps={{ color: 'blue', type: 'bars' }}
-//       />
-
-//       <div style={{ marginLeft: 10, marginTop: 45 }}>
-//         <Container size={1000} my={0}>
-//           <Title ta="left">ADD PUBLISHER</Title>
-//           {error && (
-//             <Notification color="red" title="Error" onClose={() => setError('')}>
-//               {error}
-//             </Notification>
-//           )}
-//           {notification.message && (
-//             <Notification
-//               color={notification.type === 'success' ? 'green' : 'red'}
-//               onClose={() => setNotification({ message: '', type: '' })}
-//               style={{
-//                 position: 'fixed',
-//                 bottom: 20,
-//                 right: 20,
-//                 zIndex: 1000,
-//               }}
-//             >
-//               {notification.message}
-//             </Notification>
-//           )}
-//           <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-//             <TextInput
-//               label="Publisher Name"
-//               value={name}
-//               required
-//               onChange={(event) => setName(event.currentTarget.value)}
-//               placeholder="Enter publisher name"
-//               rightSection={<IconUser size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <TextInput
-//               label="Current Address"
-//               value={currentAddress}
-//               required
-//               onChange={(event) => setCurrentAddress(event.currentTarget.value)}
-//               placeholder="Enter current address"
-//               rightSection={<IconHome2 size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <TextInput
-//               label="Permanent Address"
-//               value={permanentAddress}
-//               onChange={(event) => setPermanentAddress(event.currentTarget.value)}
-//               placeholder="Enter permanent address"
-//               rightSection={<IconHome size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <TextInput
-//               label="Phone Number"
-//               value={phoneNumber}
-//               required
-//               onChange={(event) => setPhoneNumber(event.currentTarget.value)}
-//               placeholder="Enter phone number"
-//               rightSection={<IconPhoneCall size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <TextInput
-//               label="Email"
-//               value={email}
-//               required
-//               onChange={(event) => setEmail(event.currentTarget.value)}
-//               placeholder="Enter email address"
-//               rightSection={<IconMail size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <TextInput
-//               label="ID Document URL"
-//               value={idDocumentUrl}
-//               onChange={(event) => setIdDocumentUrl(event.currentTarget.value)}
-//               placeholder="Enter ID document URL"
-//               rightSection={<IconUser size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <TextInput
-//               label="Address Type"
-//               value={addressType}
-//               required
-//               onChange={(event) => setAddressType(event.currentTarget.value)}
-//               placeholder="Enter address type"
-//               rightSection={<IconUser size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <FileInput
-//               label="Upload Profile Picture"
-//               placeholder="Upload picture"
-//               accept="image/*"
-//               onChange={setProfilePicture}
-//               required
-//               rightSection={<IconUpload size={20} />}
-//               style={{ maxWidth: 300, marginTop: 10 }}
-//             />
-//             <Button type="submit" style={{ gridColumn: 'span 2', maxWidth: 200, height: 50, marginTop: 20 }}>
-//               Create
-//             </Button>
-//           </form>
-//         </Container>
-//       </div>
-//     </Box>
-//   );
-// }
-
 
 "use client";
 
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TextInput, Button, LoadingOverlay, FileInput, Box, Notification, Container, Title, Alert, Select } from '@mantine/core';
 import { authenticatedFetch, BOOKS_API_BASE_URL, setNavigation } from '../services/baseApiService';
 import { useRouter } from 'next/navigation';
-import { IconUser, IconMail, IconPhone, IconAddressBook, IconBook, IconPhoneCall, IconHome, IconHome2, IconUpload, IconRefresh } from '@tabler/icons-react';
+import { IconUser, IconMail, IconHome, IconUpload } from '@tabler/icons-react';
+
+// Function to sanitize input to prevent script injection and HTML tags
+const sanitizeInput = (input) => {
+  if (!input) return input;
+  return input
+    .replace(/<[^>]*>/g, '') // Remove all HTML tags
+    .replace(/&[^;]+;/g, '') // Remove HTML entities
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+="[^"]*"/gi, ''); // Remove event attributes
+};
+
+// Function to validate if input contains HTML or JavaScript
+const containsHtmlOrJs = (input) => {
+  if (!input) return false;
+  const htmlJsRegex = /<|>|\bon\w+=|javascript:/i;
+  return htmlJsRegex.test(input);
+};
 
 export default function PublisherForm() {
   const [name, setName] = useState('');
-  const [currentAddress, setCurrentAddress] = useState('');
-  const [permanentAddress, setPermanentAddress] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [idDocumentUrl, setIdDocumentUrl] = useState('');
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [country, setCountry] = useState('');
+  const [region, setRegion] = useState('');
+  const [zone, setZone] = useState('');
+  const [woreda, setWoreda] = useState('');
+  const [kebele, setKebele] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [district, setDistrict] = useState('');
+  const [houseNumber, setHouseNumber] = useState('');
+  const [subcity, setSubcity] = useState('');
   const [addressType, setAddressType] = useState('');
   const [error, setError] = useState('');
   const [notification, setNotification] = useState({ message: '', type: '' });
@@ -224,17 +48,17 @@ export default function PublisherForm() {
 
   // Set up navigation for the auth service
   useEffect(() => {
-    console.log('🏢 Publisher form loaded, setting up navigation...');
+   
     setNavigation((path) => {
-      console.log('📍 Publisher form navigation to:', path);
+    
       router.push(path);
     });
   }, [router]);
 
   const addressTypes = [
-    { value: 'business', label: 'Business' },
-    { value: 'residential', label: 'Residential' },
-    { value: 'p_o_box', label: 'P.O. Box' },
+    { value: 'EMERGENCY_CONTACT', label: 'Emergency Contact' },
+    { value: 'CUSTOMER_ADDRESS', label: 'Customer Address' },
+    { value: 'BUSINESS_ADDRESS', label: 'Business Address' },
   ];
 
   const validateForm = () => {
@@ -242,16 +66,48 @@ export default function PublisherForm() {
       setError('Publisher name is required.');
       return false;
     }
-    if (!currentAddress.trim()) {
-      setError('Current address is required.');
+    if (name.length > 100) {
+      setError('Publisher name must be 100 characters or less.');
       return false;
     }
-    if (!phoneNumber.trim()) {
-      setError('Phone number is required.');
+    if (containsHtmlOrJs(name)) {
+      setError('Publisher name cannot contain HTML or JavaScript code.');
       return false;
     }
-    if (!email.trim()) {
-      setError('Email is required.');
+    if (!street.trim()) {
+      setError('Street is required.');
+      return false;
+    }
+    if (street.length > 100) {
+      setError('Street must be 100 characters or less.');
+      return false;
+    }
+    if (containsHtmlOrJs(street)) {
+      setError('Street cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (!city.trim()) {
+      setError('City is required.');
+      return false;
+    }
+    if (city.length > 50) {
+      setError('City must be 50 characters or less.');
+      return false;
+    }
+    if (containsHtmlOrJs(city)) {
+      setError('City cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (!country.trim()) {
+      setError('Country is required.');
+      return false;
+    }
+    if (country.length > 50) {
+      setError('Country must be 50 characters or less.');
+      return false;
+    }
+    if (containsHtmlOrJs(country)) {
+      setError('Country cannot contain HTML or JavaScript code.');
       return false;
     }
     if (!addressType) {
@@ -262,51 +118,126 @@ export default function PublisherForm() {
       setError('Please upload a profile picture.');
       return false;
     }
-    
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address.');
+    // Optional field validations
+    if (state && state.length > 50) {
+      setError('State must be 50 characters or less.');
       return false;
     }
-    
-    // Basic phone validation
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      setError('Please enter a valid phone number.');
+    if (state && containsHtmlOrJs(state)) {
+      setError('State cannot contain HTML or JavaScript code.');
       return false;
     }
-    
+    if (zipCode && !/^\d{5}(-\d{4})?$/.test(zipCode)) {
+      setError('Please enter a valid zip code (e.g., 12345 or 12345-6789).');
+      return false;
+    }
+    if (zipCode && containsHtmlOrJs(zipCode)) {
+      setError('Zip code cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (region && region.length > 50) {
+      setError('Region must be 50 characters or less.');
+      return false;
+    }
+    if (region && containsHtmlOrJs(region)) {
+      setError('Region cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (zone && zone.length > 50) {
+      setError('Zone must be 50 characters or less.');
+      return false;
+    }
+    if (zone && containsHtmlOrJs(zone)) {
+      setError('Zone cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (woreda && woreda.length > 50) {
+      setError('Woreda must be 50 characters or less.');
+      return false;
+    }
+    if (woreda && containsHtmlOrJs(woreda)) {
+      setError('Woreda cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (kebele && kebele.length > 50) {
+      setError('Kebele must be 50 characters or less.');
+      return false;
+    }
+    if (kebele && containsHtmlOrJs(kebele)) {
+      setError('Kebele cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (additionalInfo && additionalInfo.length > 500) {
+      setError('Additional info must be 500 characters or less.');
+      return false;
+    }
+    if (additionalInfo && containsHtmlOrJs(additionalInfo)) {
+      setError('Additional info cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (district && district.length > 50) {
+      setError('District must be 50 characters or less.');
+      return false;
+    }
+    if (district && containsHtmlOrJs(district)) {
+      setError('District cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (houseNumber && houseNumber.length > 20) {
+      setError('House number must be 20 characters or less.');
+      return false;
+    }
+    if (houseNumber && containsHtmlOrJs(houseNumber)) {
+      setError('House number cannot contain HTML or JavaScript code.');
+      return false;
+    }
+    if (subcity && subcity.length > 50) {
+      setError('Subcity must be 50 characters or less.');
+      return false;
+    }
+    if (subcity && containsHtmlOrJs(subcity)) {
+      setError('Subcity cannot contain HTML or JavaScript code.');
+      return false;
+    }
+
     setError('');
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('🏢 Publisher form submission started...');
+  
 
     if (!validateForm()) {
-      console.log('❌ Publisher form validation failed');
+
       return;
     }
 
     setLoading(true);
-    console.log('📤 Preparing publisher data for submission...');
+ 
 
     const formData = new FormData();
     const publisherData = {
-      name: name.trim(),
+      name: sanitizeInput(name.trim()),
       address: {
-        currentAddress: currentAddress.trim(),
-        permanentAddress: permanentAddress.trim() || null,
-        phoneNumber: phoneNumber.trim(),
-        email: email.trim(),
-        idDocumentUrl: idDocumentUrl.trim() || null,
+        street: sanitizeInput(street.trim()),
+        city: sanitizeInput(city.trim()),
+        state: sanitizeInput(state.trim()) || null,
+        zipCode: sanitizeInput(zipCode.trim()) || null,
+        country: sanitizeInput(country.trim()),
+        region: sanitizeInput(region.trim()) || null,
+        zone: sanitizeInput(zone.trim()) || null,
+        woreda: sanitizeInput(woreda.trim()) || null,
+        kebele: sanitizeInput(kebele.trim()) || null,
+        additionalInfo: sanitizeInput(additionalInfo.trim()) || null,
+        district: sanitizeInput(district.trim()) || null,
+        houseNumber: sanitizeInput(houseNumber.trim()) || null,
+        subcity: sanitizeInput(subcity.trim()) || null,
         addressType: addressType,
       },
     };
 
-    console.log('📋 Publisher data to submit:', publisherData);
+   
 
     const publisherBlob = new Blob([JSON.stringify(publisherData)], {
       type: "application/json",
@@ -316,55 +247,62 @@ export default function PublisherForm() {
 
     if (profilePicture) {
       formData.append("photos", profilePicture);
-      console.log('🖼️ Profile picture added to form data:', profilePicture.name);
+     
     }
 
     try {
-      console.log('🚀 Submitting publisher creation request...');
+   
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/publisher`, {
         method: 'POST',
         body: formData,
       });
 
-      console.log('📥 Publisher creation response status:', response.status);
-      
+    
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Publisher creation failed:', { status: response.status, error: errorText });
+      
         throw new Error(`Failed to create publisher: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('✅ Publisher created successfully:', data);
-      setNotification({ 
-        message: `Publisher "${name}" created successfully!`, 
-        type: 'success' 
-      });
       
-      // Reset form
+      setNotification({
+        message: `Publisher "${sanitizeInput(name)}" created successfully!`,
+        type: 'success',
+      });
+
+     
       setName('');
-      setCurrentAddress('');
-      setPermanentAddress('');
-      setPhoneNumber('');
-      setEmail('');
-      setIdDocumentUrl('');
+      setStreet('');
+      setCity('');
+      setState('');
+      setZipCode('');
+      setCountry('');
+      setRegion('');
+      setZone('');
+      setWoreda('');
+      setKebele('');
+      setAdditionalInfo('');
+      setDistrict('');
+      setHouseNumber('');
+      setSubcity('');
       setAddressType('');
       setProfilePicture(null);
       setError('');
-      
+
       // Optionally navigate to publishers list
       // router.push('/publishers');
-      
+
     } catch (error) {
-      console.error('💥 Publisher creation error:', error);
-      setNotification({ 
-        message: `Error creating publisher: ${error.message}`, 
-        type: 'error' 
+    
+      setNotification({
+        message: `Error creating publisher: ${error.message}`,
+        type: 'error',
       });
-      
-      // If it's an auth error, the token service should have already handled navigation
+
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+      
         return;
       }
     } finally {
@@ -400,9 +338,9 @@ export default function PublisherForm() {
           </div>
 
           {error && (
-            <Alert 
+            <Alert
               icon="🚨"
-              color="red" 
+              color="red"
               title="Validation Error"
               mb="md"
               onClose={() => setError('')}
@@ -422,65 +360,159 @@ export default function PublisherForm() {
               style={{ maxWidth: 400, marginTop: 10 }}
               error={error.includes('name') ? error : ''}
               disabled={loading}
+              maxLength={100}
             />
-            
+
             <TextInput
-              label="Phone Number"
-              value={phoneNumber}
+              label="Street"
+              value={street}
               required
-              onChange={(event) => setPhoneNumber(event.currentTarget.value)}
-              placeholder="+251 9XX XXX XXX"
-              rightSection={<IconPhoneCall size={20} />}
+              onChange={(event) => setStreet(event.currentTarget.value)}
+              placeholder="Enter street address"
+              rightSection={<IconHome size={20} />}
               style={{ maxWidth: 400, marginTop: 10 }}
-              error={error.includes('phone') ? error : ''}
+              error={error.includes('street') ? error : ''}
               disabled={loading}
+              maxLength={100}
             />
-            
+
             <TextInput
-              label="Email Address"
-              value={email}
+              label="City"
+              value={city}
               required
-              type="email"
-              onChange={(event) => setEmail(event.currentTarget.value)}
-              placeholder="publisher@example.com"
-              rightSection={<IconMail size={20} />}
+              onChange={(event) => setCity(event.currentTarget.value)}
+              placeholder="Enter city"
+              rightSection={<IconHome size={20} />}
               style={{ maxWidth: 400, marginTop: 10 }}
-              error={error.includes('email') ? error : ''}
+              error={error.includes('city') ? error : ''}
               disabled={loading}
+              maxLength={50}
             />
-            
+
             <TextInput
-              label="Current Address"
-              value={currentAddress}
-              required
-              onChange={(event) => setCurrentAddress(event.currentTarget.value)}
-              placeholder="Enter current business address"
-              rightSection={<IconHome2 size={20} />}
-              style={{ maxWidth: 400, marginTop: 10 }}
-              error={error.includes('address') ? error : ''}
-              disabled={loading}
-            />
-            
-            <TextInput
-              label="Permanent Address"
-              value={permanentAddress}
-              onChange={(event) => setPermanentAddress(event.currentTarget.value)}
-              placeholder="Enter permanent address (optional)"
+              label="State"
+              value={state}
+              onChange={(event) => setState(event.currentTarget.value)}
+              placeholder="Enter state (optional)"
               rightSection={<IconHome size={20} />}
               style={{ maxWidth: 400, marginTop: 10 }}
               disabled={loading}
+              maxLength={50}
             />
-            
+
             <TextInput
-              label="ID Document URL"
-              value={idDocumentUrl}
-              onChange={(event) => setIdDocumentUrl(event.currentTarget.value)}
-              placeholder="Enter business license URL (optional)"
-              rightSection={<IconBook size={20} />}
+              label="Zip Code"
+              value={zipCode}
+              onChange={(event) => setZipCode(event.currentTarget.value)}
+              placeholder="Enter zip code (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              error={error.includes('zip') ? error : ''}
+              disabled={loading}
+              maxLength={10}
+            />
+
+            <TextInput
+              label="Country"
+              value={country}
+              required
+              onChange={(event) => setCountry(event.currentTarget.value)}
+              placeholder="Enter country"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              error={error.includes('country') ? error : ''}
+              disabled={loading}
+              maxLength={50}
+            />
+
+            <TextInput
+              label="Region"
+              value={region}
+              onChange={(event) => setRegion(event.currentTarget.value)}
+              placeholder="Enter region (optional)"
+              rightSection={<IconHome size={20} />}
               style={{ maxWidth: 400, marginTop: 10 }}
               disabled={loading}
+              maxLength={50}
             />
-            
+
+            <TextInput
+              label="Zone"
+              value={zone}
+              onChange={(event) => setZone(event.currentTarget.value)}
+              placeholder="Enter zone (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={50}
+            />
+
+            <TextInput
+              label="Woreda"
+              value={woreda}
+              onChange={(event) => setWoreda(event.currentTarget.value)}
+              placeholder="Enter woreda (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={50}
+            />
+
+            <TextInput
+              label="Kebele"
+              value={kebele}
+              onChange={(event) => setKebele(event.currentTarget.value)}
+              placeholder="Enter kebele (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={50}
+            />
+
+            <TextInput
+              label="Additional Info"
+              value={additionalInfo}
+              onChange={(event) => setAdditionalInfo(event.currentTarget.value)}
+              placeholder="Enter additional info (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={500}
+            />
+
+            <TextInput
+              label="District"
+              value={district}
+              onChange={(event) => setDistrict(event.currentTarget.value)}
+              placeholder="Enter district (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={50}
+            />
+
+            <TextInput
+              label="House Number"
+              value={houseNumber}
+              onChange={(event) => setHouseNumber(event.currentTarget.value)}
+              placeholder="Enter house number (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={20}
+            />
+
+            <TextInput
+              label="Subcity"
+              value={subcity}
+              onChange={(event) => setSubcity(event.currentTarget.value)}
+              placeholder="Enter subcity (optional)"
+              rightSection={<IconHome size={20} />}
+              style={{ maxWidth: 400, marginTop: 10 }}
+              disabled={loading}
+              maxLength={50}
+            />
+
             <Select
               label="Address Type"
               value={addressType}
@@ -488,12 +520,12 @@ export default function PublisherForm() {
               onChange={setAddressType}
               placeholder="Select address type"
               data={addressTypes}
-              rightSection={<IconAddressBook size={20} />}
+              rightSection={<IconHome size={20} />}
               style={{ maxWidth: 400, marginTop: 10 }}
               error={error.includes('address type') ? error : ''}
               disabled={loading}
             />
-            
+
             <FileInput
               label="Profile Picture"
               placeholder="Upload publisher logo (JPG, PNG)"
@@ -506,10 +538,10 @@ export default function PublisherForm() {
               error={error.includes('picture') ? error : ''}
               disabled={loading}
             />
-            
+
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'center', gap: '10px', marginTop: 20 }}>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 size="lg"
                 leftSection={<IconUser size={20} />}
                 loading={loading}
@@ -518,7 +550,7 @@ export default function PublisherForm() {
               >
                 {loading ? 'Creating...' : 'Create Publisher'}
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={handleCancel}
                 size="lg"

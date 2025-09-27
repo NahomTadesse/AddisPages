@@ -33,8 +33,7 @@ export default function MyForm() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    // Handle form submission logic here
-    console.log({ fullName, date, phoneNumber, email, isMember });
+   
   };
 
   return (

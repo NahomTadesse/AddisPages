@@ -13,7 +13,7 @@ export default function AdminRegistration() {
   const [document, setDocument] = useState(null);
 
   const handleSubmit = () => {
-    console.log('Admin Registration:', { name, email, password, phone, address, profilePicture, document });
+  
     // Here you can handle the submission, e.g., send to an API
   };
 

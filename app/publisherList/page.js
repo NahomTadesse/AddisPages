@@ -1,6 +1,8 @@
+
+
 "use client";
 import { useEffect, useState } from 'react';
-import { IconChevronDown, IconChevronUp, IconSearch, IconSelector, IconRefresh, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconEye, IconBookOpen } from '@tabler/icons-react';
+import { IconChevronDown, IconChevronUp, IconSearch, IconSelector, IconRefresh, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconEye, IconBook, IconMapPin } from '@tabler/icons-react';
 import {
   Center,
   Group,
@@ -30,7 +32,23 @@ import { authenticatedFetch, BOOKS_API_BASE_URL, setNavigation } from '../servic
 import { useRouter } from 'next/navigation';
 import { useDisclosure } from '@mantine/hooks';
 import classes from './TableSort.module.css';
-import { IconBook  } from '@tabler/icons-react';
+
+// Function to sanitize input to prevent script injection and HTML tags
+const sanitizeInput = (input) => {
+  if (!input) return input;
+  return input
+    .replace(/<[^>]*>/g, '') // Remove all HTML tags
+    .replace(/&[^;]+;/g, '') // Remove HTML entities
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+="[^"]*"/gi, ''); // Remove event attributes
+};
+
+// Function to validate if input contains HTML or JavaScript
+const containsHtmlOrJs = (input) => {
+  if (!input) return false;
+  const htmlJsRegex = /<|>|\bon\w+=|javascript:/i;
+  return htmlJsRegex.test(input);
+};
 
 function Th({ children, reversed, sorted, onSort }) {
   const Icon = sorted ? (reversed ? IconChevronUp : IconChevronDown) : IconSelector;
@@ -78,8 +96,8 @@ function sortData(data, payload) {
       let bValue = b[sortBy];
       
       if (sortBy === 'address' && typeof aValue === 'object') {
-        aValue = aValue.currentAddress || aValue.permanentAddress || '';
-        bValue = bValue.currentAddress || bValue.permanentAddress || '';
+        aValue = aValue.street || aValue.city || '';
+        bValue = bValue.street || bValue.city || '';
       }
       
       if (reversed) {
@@ -91,7 +109,6 @@ function sortData(data, payload) {
   );
 }
 
-// Pagination component
 function PublishersPagination({ total, currentPage, onPageChange, loading }) {
   if (total <= 7) return null;
 
@@ -130,27 +147,27 @@ export default function PublishersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [editingPublisher, setEditingPublisher] = useState(null);
   const [deleteModal, { open: openDelete, close: closeDelete }] = useDisclosure(false);
+  const [addressModal, { open: openAddress, close: closeAddress }] = useDisclosure(false);
   const [deletePublisherId, setDeletePublisherId] = useState(null);
   const [editModal, { open: openEdit, close: closeEdit }] = useDisclosure(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const router = useRouter();
 
-  // Set up navigation for the auth service
   useEffect(() => {
-    console.log('🏢 Publishers page loaded, setting up navigation...');
+
     setNavigation((path) => {
-      console.log('📍 Publishers navigation to:', path);
+  
       router.push(path);
     });
   }, [router]);
 
   useEffect(() => {
-    console.log('🏢 Publishers page initialized, fetching data...');
+   
     fetchPublishers();
   }, []);
 
-  // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
@@ -158,15 +175,15 @@ export default function PublishersTable() {
   const fetchPublishers = async () => {
     setLoading(true);
     setError(null);
-    console.log('🔄 Starting publishers fetch...');
+  
     
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/publisher`);
-      console.log('📥 Publishers fetch response status:', response.status);
+ 
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Publishers fetch failed:', { status: response.status, error: errorText });
+     
         
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
@@ -175,24 +192,24 @@ export default function PublishersTable() {
       }
 
       const fetchedData = await response.json();
-      console.log('✅ Publishers fetched successfully:', fetchedData);
+   
       
       if (Array.isArray(fetchedData)) {
         setData(fetchedData);
         setSortedData(fetchedData);
-        console.log(`📊 Loaded ${fetchedData.length} publishers`);
+     
       } else {
-        console.warn('⚠️ Expected array but got:', fetchedData);
+       
         setData([]);
         setSortedData([]);
         setError('Invalid response format from server');
       }
     } catch (error) {
-      console.error('💥 Error fetching publishers:', error);
+    
       setError(error.message || 'Failed to fetch publishers');
       
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+   
         return;
       }
     } finally {
@@ -200,7 +217,132 @@ export default function PublishersTable() {
     }
   };
 
-  // Pagination logic
+  const validateForm = () => {
+    if (!editingPublisher.name || !editingPublisher.name.trim()) {
+      setNotification({ message: 'Publisher name is required.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.name.length > 100) {
+      setNotification({ message: 'Publisher name must be 100 characters or less.', type: 'error' });
+      return false;
+    }
+    if (containsHtmlOrJs(editingPublisher.name)) {
+      setNotification({ message: 'Publisher name cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (!editingPublisher.addressType) {
+      setNotification({ message: 'Address type is required.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.street && editingPublisher.street.length > 100) {
+      setNotification({ message: 'Street must be 100 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.street && containsHtmlOrJs(editingPublisher.street)) {
+      setNotification({ message: 'Street cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.city && editingPublisher.city.length > 50) {
+      setNotification({ message: 'City must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.city && containsHtmlOrJs(editingPublisher.city)) {
+      setNotification({ message: 'City cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.subcity && editingPublisher.subcity.length > 50) {
+      setNotification({ message: 'Subcity must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.subcity && containsHtmlOrJs(editingPublisher.subcity)) {
+      setNotification({ message: 'Subcity cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.state && editingPublisher.state.length > 50) {
+      setNotification({ message: 'State must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.state && containsHtmlOrJs(editingPublisher.state)) {
+      setNotification({ message: 'State cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.zipCode && !/^\d{5}(-\d{4})?$/.test(editingPublisher.zipCode)) {
+      setNotification({ message: 'Please enter a valid zip code (e.g., 12345 or 12345-6789).', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.zipCode && containsHtmlOrJs(editingPublisher.zipCode)) {
+      setNotification({ message: 'Zip code cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.country && editingPublisher.country.length > 50) {
+      setNotification({ message: 'Country must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.country && containsHtmlOrJs(editingPublisher.country)) {
+      setNotification({ message: 'Country cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.region && editingPublisher.region.length > 50) {
+      setNotification({ message: 'Region must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.region && containsHtmlOrJs(editingPublisher.region)) {
+      setNotification({ message: 'Region cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.zone && editingPublisher.zone.length > 50) {
+      setNotification({ message: 'Zone must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.zone && containsHtmlOrJs(editingPublisher.zone)) {
+      setNotification({ message: 'Zone cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.woreda && editingPublisher.woreda.length > 50) {
+      setNotification({ message: 'Woreda must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.woreda && containsHtmlOrJs(editingPublisher.woreda)) {
+      setNotification({ message: 'Woreda cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.kebele && editingPublisher.kebele.length > 50) {
+      setNotification({ message: 'Kebele must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.kebele && containsHtmlOrJs(editingPublisher.kebele)) {
+      setNotification({ message: 'Kebele cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.houseNumber && editingPublisher.houseNumber.length > 20) {
+      setNotification({ message: 'House number must be 20 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.houseNumber && containsHtmlOrJs(editingPublisher.houseNumber)) {
+      setNotification({ message: 'House number cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.district && editingPublisher.district.length > 50) {
+      setNotification({ message: 'District must be 50 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.district && containsHtmlOrJs(editingPublisher.district)) {
+      setNotification({ message: 'District cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.additionalInfo && editingPublisher.additionalInfo.length > 500) {
+      setNotification({ message: 'Additional info must be 500 characters or less.', type: 'error' });
+      return false;
+    }
+    if (editingPublisher.additionalInfo && containsHtmlOrJs(editingPublisher.additionalInfo)) {
+      setNotification({ message: 'Additional info cannot contain HTML or JavaScript code.', type: 'error' });
+      return false;
+    }
+
+    setNotification({ message: '', type: '' });
+    return true;
+  };
+
   const paginatedData = () => {
     const startIndex = (currentPage - 1) * 7;
     const endIndex = startIndex + 7;
@@ -216,76 +358,90 @@ export default function PublishersTable() {
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget;
-    setSearch(value);
+    setSearch(sanitizeInput(value));
     setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value }));
   };
 
   const handleRefresh = () => {
-    console.log('🔄 Manual refresh triggered for publishers');
+   
     fetchPublishers();
   };
 
   const handleCreateNew = () => {
-    console.log('➕ Navigate to create publisher');
-    router.push('/publishers/create');
+
+    router.push('/addPblisher');
   };
 
   const handleViewDetails = (publisherId) => {
-    console.log('👁️ Navigate to publisher details:', publisherId);
+    
     router.push(`/publishers/${publisherId}`);
   };
 
   const handleEdit = (publisher) => {
-    console.log('✏️ Edit publisher:', publisher.id);
+    
     setEditingPublisher({
       ...publisher,
-      currentAddress: publisher.address?.currentAddress || '',
-      permanentAddress: publisher.address?.permanentAddress || '',
-      phoneNumber: publisher.address?.phoneNumber || '',
-      email: publisher.address?.email || '',
-      idDocumentUrl: publisher.address?.idDocumentUrl || '',
+      street: publisher.address?.street || '',
+      city: publisher.address?.city || '',
+      state: publisher.address?.state || '',
+      zipCode: publisher.address?.zipCode || '',
+      country: publisher.address?.country || '',
+      region: publisher.address?.region || '',
+      zone: publisher.address?.zone || '',
+      woreda: publisher.address?.woreda || '',
+      kebele: publisher.address?.kebele || '',
+      additionalInfo: publisher.address?.additionalInfo || '',
+      district: publisher.address?.district || '',
+      houseNumber: publisher.address?.houseNumber || '',
+      subcity: publisher.address?.subcity || '',
       addressType: publisher.address?.addressType || ''
     });
     openEdit();
   };
 
   const handleDelete = (publisherId, publisherName) => {
-    console.log('🗑️ Delete publisher:', publisherId);
+    
     setDeletePublisherId(publisherId);
-    setNotification({ message: `Delete "${publisherName}"?`, type: 'warning' });
+    setNotification({ message: `Delete "${sanitizeInput(publisherName)}"?`, type: 'warning' });
     openDelete();
+  };
+
+  const handleViewAddress = (address) => {
+  
+    setSelectedAddress(address);
+    openAddress();
   };
 
   const confirmDelete = async () => {
     if (!deletePublisherId) return;
     
     setDeleteLoading(true);
-    console.log('🗑️ Confirming publisher deletion:', deletePublisherId);
+    
     
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/publisher/${deletePublisherId}`, {
         method: 'DELETE',
       });
       
-      console.log('📥 Delete response status:', response.status);
+    
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Delete failed:', { status: response.status, error: errorText });
+       
         throw new Error(`Failed to delete publisher: ${response.status} - ${errorText}`);
       }
       
-      console.log('✅ Publisher deleted successfully');
+     
       setNotification({ message: 'Publisher deleted successfully!', type: 'success' });
       closeDelete();
       setCurrentPage(1);
-      fetchPublishers(); // Refresh the list
+      fetchPublishers();
     } catch (error) {
-      console.error('💥 Delete error:', error);
+    
       setNotification({ message: `Error deleting publisher: ${error.message}`, type: 'error' });
       
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+        
         return;
       }
     } finally {
@@ -296,24 +452,36 @@ export default function PublishersTable() {
   const handleUpdate = async () => {
     if (!editingPublisher) return;
     
+    if (!validateForm()) {
+   
+      return;
+    }
+
     setUpdateLoading(true);
-    console.log('✏️ Updating publisher:', editingPublisher.id);
+   
     
     const updateData = {
       id: editingPublisher.id,
-      name: editingPublisher.name.trim(),
+      name: sanitizeInput(editingPublisher.name.trim()),
       address: {
-        id: editingPublisher.address?.id || '',
-        currentAddress: editingPublisher.currentAddress.trim(),
-        permanentAddress: editingPublisher.permanentAddress.trim() || '',
-        phoneNumber: editingPublisher.phoneNumber.trim(),
-        email: editingPublisher.email.trim(),
-        idDocumentUrl: editingPublisher.idDocumentUrl.trim() || '',
+        street: sanitizeInput(editingPublisher.street.trim()) || null,
+        city: sanitizeInput(editingPublisher.city.trim()) || null,
+        state: sanitizeInput(editingPublisher.state.trim()) || null,
+        zipCode: sanitizeInput(editingPublisher.zipCode.trim()) || null,
+        country: sanitizeInput(editingPublisher.country.trim()) || null,
+        region: sanitizeInput(editingPublisher.region.trim()) || null,
+        zone: sanitizeInput(editingPublisher.zone.trim()) || null,
+        woreda: sanitizeInput(editingPublisher.woreda.trim()) || null,
+        kebele: sanitizeInput(editingPublisher.kebele.trim()) || null,
+        additionalInfo: sanitizeInput(editingPublisher.additionalInfo.trim()) || null,
+        district: sanitizeInput(editingPublisher.district.trim()) || null,
+        houseNumber: sanitizeInput(editingPublisher.houseNumber.trim()) || null,
+        subcity: sanitizeInput(editingPublisher.subcity.trim()) || null,
         addressType: editingPublisher.addressType,
       }
     };
     
-    console.log('📋 Update data:', updateData);
+ 
     
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/publisher/${editingPublisher.id}`, {
@@ -324,27 +492,27 @@ export default function PublishersTable() {
         body: JSON.stringify(updateData),
       });
       
-      console.log('📥 Update response status:', response.status);
+      
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Update failed:', { status: response.status, error: errorText });
+       
         throw new Error(`Failed to update publisher: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('✅ Publisher updated successfully:', data);
-      setNotification({ message: `Publisher "${editingPublisher.name}" updated successfully!`, type: 'success' });
+    
+      setNotification({ message: `Publisher "${sanitizeInput(editingPublisher.name)}" updated successfully!`, type: 'success' });
       closeEdit();
       setEditingPublisher(null);
       setCurrentPage(1);
-      fetchPublishers(); // Refresh the list
+      fetchPublishers();
     } catch (error) {
-      console.error('💥 Update error:', error);
+  
       setNotification({ message: `Error updating publisher: ${error.message}`, type: 'error' });
       
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+       
         return;
       }
     } finally {
@@ -355,36 +523,27 @@ export default function PublishersTable() {
   const handleCancelEdit = () => {
     setEditingPublisher(null);
     closeEdit();
+    setNotification({ message: '', type: '' });
   };
 
   const handleInputChange = (field, value) => {
     setEditingPublisher(prev => ({
       ...prev,
-      [field]: value
+      [field]: sanitizeInput(value)
     }));
   };
 
-  const handleAddressInputChange = (addressField, value) => {
-    setEditingPublisher(prev => ({
-      ...prev,
-      address: {
-        ...prev.address,
-        [addressField]: value
-      }
-    }));
-  };
-
-  // Format address for display
   const formatAddress = (address) => {
     if (!address || typeof address !== 'object') return 'N/A';
     
     const parts = [];
-    if (address.currentAddress) parts.push(address.currentAddress);
-    if (address.permanentAddress) parts.push(`(${address.permanentAddress})`);
-    if (address.phoneNumber) parts.push(address.phoneNumber);
-    if (address.email) parts.push(address.email);
+    if (address.street) parts.push(sanitizeInput(address.street));
+    if (address.city) parts.push(sanitizeInput(address.city));
+    if (address.subcity) parts.push(sanitizeInput(address.subcity));
+    if (address.woreda) parts.push(`Woreda ${sanitizeInput(address.woreda)}`);
+    if (address.kebele) parts.push(`Kebele ${sanitizeInput(address.kebele)}`);
     
-    return parts.length > 0 ? parts.join(' | ') : 'N/A';
+    return parts.length > 0 ? parts.join(', ') : 'N/A';
   };
 
   const paginatedRows = paginatedData().map((row) => (
@@ -404,44 +563,32 @@ export default function PublishersTable() {
           </Avatar>
           <div style={{ lineHeight: 1.2 }}>
             <Text fw={600} fz="sm" c="dark" style={{ margin: 0 }}>
-              {row.name || 'N/A'}
+              {sanitizeInput(row.name) || 'N/A'}
             </Text>
             <Text fz="xs" c="dimmed" style={{ margin: 0 }}>
-              {row.address?.addressType ? row.address.addressType.charAt(0).toUpperCase() + row.address.addressType.slice(1) : 'Business'}
+              {row.address?.addressType ? row.address.addressType.replace('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'Business'}
             </Text>
           </div>
         </Group>
       </Table.Td>
       <Table.Td style={{ padding: '12px 8px', verticalAlign: 'middle', maxWidth: '250px' }}>
         <div style={{ lineHeight: 1.4 }}>
-          <Text fz="sm" c="dark" style={{ margin: 0, wordBreak: 'break-word' }}>
-            {row.address?.currentAddress || 'N/A'}
+          <Text 
+            fz="sm" 
+            c="blue" 
+            style={{ 
+              margin: 0, 
+              wordBreak: 'break-word',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleViewAddress(row.address)}
+          >
+            {formatAddress(row.address)}
           </Text>
-          {row.address?.permanentAddress && (
-            <Text fz="xs" c="dimmed" style={{ margin: '2px 0 0 0' }}>
-              {row.address.permanentAddress}
-            </Text>
-          )}
         </div>
       </Table.Td>
-      <Table.Td style={{ padding: '12px 8px', verticalAlign: 'middle', width: '120px' }}>
-        <Text fz="sm" c="dark" style={{ 
-          margin: 0, 
-          wordBreak: 'break-all',
-          color: row.address?.phoneNumber ? '#1976d2' : 'dimmed'
-        }}>
-          {row.address?.phoneNumber || 'N/A'}
-        </Text>
-      </Table.Td>
-      <Table.Td style={{ padding: '12px 8px', verticalAlign: 'middle', width: '180px' }}>
-        <Text fz="sm" c={row.address?.email ? 'dark' : 'dimmed'} style={{ 
-          margin: 0, 
-          wordBreak: 'break-all',
-          color: row.address?.email ? '#1976d2' : 'dimmed'
-        }}>
-          {row.address?.email || 'N/A'}
-        </Text>
-      </Table.Td>
+   
       <Table.Td style={{ padding: '12px 4px', verticalAlign: 'middle', width: '80px' }}>
         <Center>
           <Menu shadow="md" width={140} position="left-start" withArrow>
@@ -469,25 +616,7 @@ export default function PublishersTable() {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown style={{ border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-              <Menu.Item 
-                leftSection={<IconEye size={14} color="#64748b" />}
-                onClick={() => handleViewDetails(row.id)}
-                styles={{
-                  item: {
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    '&:hover': {
-                      backgroundColor: '#f1f5f9',
-                      color: '#1e293b',
-                    },
-                  },
-                  leftSection: {
-                    marginRight: '8px',
-                  },
-                }}
-              >
-                View Details
-              </Menu.Item>
+         
               <Menu.Item 
                 leftSection={<IconEdit size={14} color="#64748b" />}
                 onClick={() => handleEdit(row)}
@@ -536,8 +665,9 @@ export default function PublishersTable() {
     </Table.Tr>
   ));
 
-  // Update form
   const addressTypes = [
+    { value: 'CUSTOMER_ADDRESS', label: 'Customer Address' },
+    { value: 'EMERGENCY_CONTACT', label: 'Emergency Contact' },
     { value: 'business', label: 'Business' },
     { value: 'residential', label: 'Residential' },
     { value: 'p_o_box', label: 'P.O. Box' },
@@ -552,7 +682,6 @@ export default function PublishersTable() {
         loaderProps={{ color: 'blue', type: 'bars' }}
       />
       
-      {/* Header Section */}
       <Box style={{ 
         backgroundColor: 'white', 
         borderBottom: '1px solid #e2e8f0', 
@@ -611,7 +740,6 @@ export default function PublishersTable() {
         </Group>
       </Box>
 
-      {/* Search Section */}
       <Box style={{ 
         backgroundColor: 'white', 
         padding: '20px 32px', 
@@ -650,7 +778,6 @@ export default function PublishersTable() {
         />
       </Box>
 
-      {/* Error Alert */}
       {error && (
         <Paper style={{ 
           margin: '0 32px 24px', 
@@ -687,7 +814,6 @@ export default function PublishersTable() {
         </Paper>
       )}
 
-      {/* Main Content */}
       <ScrollArea style={{ height: 'calc(100vh - 200px)' }}>
         <Paper style={{ 
           margin: '0 32px 32px', 
@@ -723,12 +849,7 @@ export default function PublishersTable() {
                 >
                   Address
                 </Th>
-                <Th style={{ width: '140px', textAlign: 'center' }}>
-                  Contact
-                </Th>
-                <Th style={{ width: '180px' }}>
-                  Email
-                </Th>
+             
                 <Th style={{ width: '80px', textAlign: 'center' }}>
                   Actions
                 </Th>
@@ -774,7 +895,7 @@ export default function PublishersTable() {
                       ) : (
                         <>
                           <ActionIcon size="lg" variant="light" color="gray" radius="xl" style={{ width: '80px', height: '80px' }}>
-                            {/* <IconBookOpen size={32} /> */}
+                            <IconBook size={32} />
                           </ActionIcon>
                           <div>
                             <Text fw={600} size="lg" c="dark" style={{ marginBottom: '8px' }}>
@@ -802,7 +923,6 @@ export default function PublishersTable() {
           </Table>
         </Paper>
 
-        {/* Pagination */}
         <PublishersPagination 
           total={sortedData.length} 
           currentPage={currentPage} 
@@ -811,7 +931,6 @@ export default function PublishersTable() {
         />
       </ScrollArea>
 
-      {/* Delete Confirmation Modal */}
       <Modal
         opened={deleteModal}
         onClose={closeDelete}
@@ -837,7 +956,7 @@ export default function PublishersTable() {
             <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
               Are you sure you want to delete this publisher? 
               <br />
-              <strong style={{ color: 'dark' }}>{deletePublisherId}</strong> 
+              <strong style={{ color: 'dark' }}>{sanitizeInput(deletePublisherId)}</strong> 
               <br />
               This action cannot be undone.
             </Text>
@@ -869,253 +988,581 @@ export default function PublishersTable() {
         </Stack>
       </Modal>
 
-      {/* Edit Publisher Modal */}
-     <Modal
-  opened={editModal}
-  onClose={handleCancelEdit}
-  title={`Edit Publisher`}
-  size="lg"
-  withCloseButton
-  radius="md"
-  styles={{
-    header: {
-      borderBottom: '1px solid #e2e8f0',
-      paddingBottom: '16px',
-      marginBottom: '16px'
-    },
-    content: {
-      padding: '24px'
-    }
-  }}
->
-  {editingPublisher && (
-    <Box component="form" onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}>
-      <Stack gap="md">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              Publisher Name *
-            </Text>
-            <MantineTextInput
-              id="publisherName"
-              value={editingPublisher.name || ''}
-              onChange={(e) => handleInputChange('name', e.currentTarget.value)}
-              placeholder="Enter publisher name"
-              size="md"
-              radius="md"
-              required
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-          
-          <div>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              Phone Number *
-            </Text>
-            <MantineTextInput
-              id="phoneNumber"
-              value={editingPublisher.phoneNumber || ''}
-              onChange={(e) => handleAddressInputChange('phoneNumber', e.currentTarget.value)}
-              placeholder="+251 9XX XXX XXX"
-              size="md"
-              radius="md"
-              required
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-          
-          <div>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              Email Address *
-            </Text>
-            <MantineTextInput
-              id="email"
-              type="email"
-              value={editingPublisher.email || ''}
-              onChange={(e) => handleAddressInputChange('email', e.currentTarget.value)}
-              placeholder="publisher@example.com"
-              size="md"
-              radius="md"
-              required
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-          
-          <div>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              Address Type *
-            </Text>
-            <Select
-              value={editingPublisher.addressType || ''}
-              onChange={(value) => handleAddressInputChange('addressType', value)}
-              placeholder="Select address type"
-              size="md"
-              radius="md"
-              data={addressTypes}
-              required
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-          
-          <div style={{ gridColumn: '1 / -1' }}>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              Current Address *
-            </Text>
-            <MantineTextInput
-              id="currentAddress"
-              value={editingPublisher.currentAddress || ''}
-              onChange={(e) => handleAddressInputChange('currentAddress', e.currentTarget.value)}
-              placeholder="Enter current business address"
-              size="md"
-              radius="md"
-              required
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  minHeight: '44px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-          
-          <div>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              Permanent Address
-            </Text>
-            <MantineTextInput
-              id="permanentAddress"
-              value={editingPublisher.permanentAddress || ''}
-              onChange={(e) => handleAddressInputChange('permanentAddress', e.currentTarget.value)}
-              placeholder="Enter permanent address (optional)"
-              size="md"
-              radius="md"
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-          
-          <div>
-            <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
-              ID Document URL
-            </Text>
-            <MantineTextInput
-              id="idDocumentUrl"
-              value={editingPublisher.idDocumentUrl || ''}
-              onChange={(e) => handleAddressInputChange('idDocumentUrl', e.currentTarget.value)}
-              placeholder="Enter business license URL (optional)"
-              size="md"
-              radius="md"
-              disabled={updateLoading}
-              styles={{
-                input: {
-                  border: '1px solid #d1d5db',
-                  padding: '10px 12px',
-                  '&:focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px #3b82f6',
-                  },
-                },
-              }}
-            />
-          </div>
-        </div>
-        
-        <Divider style={{ margin: '24px 0' }} />
-        
-        <Group justify="flex-end" gap="md">
-          <Button 
-            variant="outline" 
-            onClick={handleCancelEdit}
-            disabled={updateLoading}
-            size="md"
-            radius="md"
-            style={{ 
-              minWidth: '100px',
-              border: '1px solid #d1d5db',
-              height: '40px'
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit"
-            leftSection={<IconEdit size={16} />}
-            loading={updateLoading}
-            disabled={updateLoading}
-            size="md"
-            radius="md"
-            style={{ 
-              minWidth: '140px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              height: '40px',
-              fontWeight: 600
-            }}
-          >
-            {updateLoading ? 'Updating...' : 'Update Publisher'}
-          </Button>
-        </Group>
-      </Stack>
-    </Box>
-  )}
-</Modal>
+      <Modal
+        opened={addressModal}
+        onClose={closeAddress}
+        title="Address Details"
+        centered
+        size="md"
+        withCloseButton
+        radius="md"
+        styles={{
+          header: {
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: '16px',
+            marginBottom: '16px'
+          },
+          content: {
+            padding: '24px'
+          }
+        }}
+      >
+        {selectedAddress && (
+          <Stack gap="md">
+            <Group gap="xs">
+              <IconMapPin size={24} color="#3b82f6" />
+              <Text fw={600} size="lg">Address Information</Text>
+            </Group>
+            <Divider />
+            <Stack gap="sm">
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Street:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.street) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">City:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.city) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Subcity:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.subcity) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">State:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.state) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Zip Code:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.zipCode) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Country:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.country) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Region:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.region) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Zone:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.zone) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Woreda:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.woreda) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Kebele:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.kebele) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">House Number:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.houseNumber) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">District:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.district) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Additional Info:</Text>
+                <Text size="sm">{sanitizeInput(selectedAddress.additionalInfo) || 'N/A'}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">Address Type:</Text>
+                <Text size="sm">{selectedAddress.addressType?.replace('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) || 'N/A'}</Text>
+              </Group>
+            </Stack>
+            <Divider />
+            <Group justify="flex-end">
+              <Button 
+                variant="outline" 
+                onClick={closeAddress}
+                size="sm"
+                radius="md"
+                style={{ minWidth: '80px' }}
+              >
+                Close
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
 
-      {/* Success/Error Notification */}
+      <Modal
+        opened={editModal}
+        onClose={handleCancelEdit}
+        title={`Edit Publisher`}
+        size="lg"
+        withCloseButton
+        radius="md"
+        styles={{
+          header: {
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: '16px',
+            marginBottom: '16px'
+          },
+          content: {
+            padding: '24px'
+          }
+        }}
+      >
+        {editingPublisher && (
+          <Box component="form" onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}>
+            <Stack gap="md">
+              {notification.message && editModal && (
+                <Paper
+                  style={{
+                    backgroundColor: notification.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                    border: `1px solid ${notification.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <Group gap="xs">
+                    {notification.type === 'error' && <IconTrash size={18} color="#dc2626" />}
+                    <Text size="sm" fw={500} style={{ 
+                      color: notification.type === 'error' ? '#991b1b' : '#166534'
+                    }}>
+                      {notification.message}
+                    </Text>
+                  </Group>
+                </Paper>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Publisher Name *
+                  </Text>
+                  <MantineTextInput
+                    id="publisherName"
+                    value={editingPublisher.name || ''}
+                    onChange={(e) => handleInputChange('name', e.currentTarget.value)}
+                    placeholder="Enter publisher name"
+                    size="md"
+                    radius="md"
+                    required
+                    disabled={updateLoading}
+                    maxLength={100}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Address Type *
+                  </Text>
+                  <Select
+                    value={editingPublisher.addressType || ''}
+                    onChange={(value) => handleInputChange('addressType', value)}
+                    placeholder="Select address type"
+                    size="md"
+                    radius="md"
+                    data={addressTypes}
+                    required
+                    disabled={updateLoading}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Street
+                  </Text>
+                  <MantineTextInput
+                    id="street"
+                    value={editingPublisher.street || ''}
+                    onChange={(e) => handleInputChange('street', e.currentTarget.value)}
+                    placeholder="Enter street"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={100}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    City
+                  </Text>
+                  <MantineTextInput
+                    id="city"
+                    value={editingPublisher.city || ''}
+                    onChange={(e) => handleInputChange('city', e.currentTarget.value)}
+                    placeholder="Enter city"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Subcity
+                  </Text>
+                  <MantineTextInput
+                    id="subcity"
+                    value={editingPublisher.subcity || ''}
+                    onChange={(e) => handleInputChange('subcity', e.currentTarget.value)}
+                    placeholder="Enter subcity"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    State
+                  </Text>
+                  <MantineTextInput
+                    id="state"
+                    value={editingPublisher.state || ''}
+                    onChange={(e) => handleInputChange('state', e.currentTarget.value)}
+                    placeholder="Enter state"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Zip Code
+                  </Text>
+                  <MantineTextInput
+                    id="zipCode"
+                    value={editingPublisher.zipCode || ''}
+                    onChange={(e) => handleInputChange('zipCode', e.currentTarget.value)}
+                    placeholder="Enter zip code"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={10}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Country
+                  </Text>
+                  <MantineTextInput
+                    id="country"
+                    value={editingPublisher.country || ''}
+                    onChange={(e) => handleInputChange('country', e.currentTarget.value)}
+                    placeholder="Enter country"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Region
+                  </Text>
+                  <MantineTextInput
+                    id="region"
+                    value={editingPublisher.region || ''}
+                    onChange={(e) => handleInputChange('region', e.currentTarget.value)}
+                    placeholder="Enter region"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Zone
+                  </Text>
+                  <MantineTextInput
+                    id="zone"
+                    value={editingPublisher.zone || ''}
+                    onChange={(e) => handleInputChange('zone', e.currentTarget.value)}
+                    placeholder="Enter zone"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Woreda
+                  </Text>
+                  <MantineTextInput
+                    id="woreda"
+                    value={editingPublisher.woreda || ''}
+                    onChange={(e) => handleInputChange('woreda', e.currentTarget.value)}
+                    placeholder="Enter woreda"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Kebele
+                  </Text>
+                  <MantineTextInput
+                    id="kebele"
+                    value={editingPublisher.kebele || ''}
+                    onChange={(e) => handleInputChange('kebele', e.currentTarget.value)}
+                    placeholder="Enter kebele"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    House Number
+                  </Text>
+                  <MantineTextInput
+                    id="houseNumber"
+                    value={editingPublisher.houseNumber || ''}
+                    onChange={(e) => handleInputChange('houseNumber', e.currentTarget.value)}
+                    placeholder="Enter house number"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={20}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    District
+                  </Text>
+                  <MantineTextInput
+                    id="district"
+                    value={editingPublisher.district || ''}
+                    onChange={(e) => handleInputChange('district', e.currentTarget.value)}
+                    placeholder="Enter district"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={50}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Text size="sm" style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151' }}>
+                    Additional Info
+                  </Text>
+                  <MantineTextInput
+                    id="additionalInfo"
+                    value={editingPublisher.additionalInfo || ''}
+                    onChange={(e) => handleInputChange('additionalInfo', e.currentTarget.value)}
+                    placeholder="Enter additional information"
+                    size="md"
+                    radius="md"
+                    disabled={updateLoading}
+                    maxLength={500}
+                    styles={{
+                      input: {
+                        border: '1px solid #d1d5db',
+                        padding: '10px 12px',
+                        minHeight: '44px',
+                        '&:focus': {
+                          borderColor: '#3b82f6',
+                          boxShadow: '0 0 0 1px #3b82f6',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <Divider style={{ margin: '24px 0' }} />
+              
+              <Group justify="flex-end" gap="md">
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelEdit}
+                  disabled={updateLoading}
+                  size="md"
+                  radius="md"
+                  style={{ 
+                    minWidth: '100px',
+                    border: '1px solid #d1d5db',
+                    height: '40px'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  leftSection={<IconEdit size={16} />}
+                  loading={updateLoading}
+                  disabled={updateLoading}
+                  size="md"
+                  radius="md"
+                  style={{ 
+                    minWidth: '140px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    height: '40px',
+                    fontWeight: 600
+                  }}
+                >
+                  {updateLoading ? 'Updating...' : 'Update Publisher'}
+                </Button>
+              </Group>
+            </Stack>
+          </Box>
+        )}
+      </Modal>
+
       {notification.message && (
         <Paper
           style={{

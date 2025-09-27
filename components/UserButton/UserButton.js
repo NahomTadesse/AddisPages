@@ -9,10 +9,10 @@ import { useEffect } from 'react';
 export function UserButton() {
   
   const [userData] = useLocalStorage('userData', {});
-  // console.log('serr',userData)
+
   // const userD = JSON.parse(Cookies.get('userData'))
   // useEffect(()=>{
-  //   console.log('dataaa',userD.phoneNumber)
+
   // },[])
   // const savedData = localStorage.getItem('userData');
   return (

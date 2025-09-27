@@ -1,3 +1,5 @@
+
+
 "use client";
 import { useEffect, useState } from 'react';
 import {
@@ -19,7 +21,9 @@ import {
   Paper,
   Stack,
   Divider,
-  Badge
+  Badge,
+  Image,
+  Select
 } from '@mantine/core';
 import {
   IconChevronDown,
@@ -56,24 +60,26 @@ function Th({ children, reversed, sorted, onSort }) {
   );
 }
 
-// Filter data based on search query
-function filterData(data, search) {
+// Filter data based on search query and status
+function filterData(data, search, statusFilter) {
   const query = search.toLowerCase().trim();
-  return data.filter((item) =>
-    Object.keys(item).some((key) => {
+  return data.filter((item) => {
+    const matchesSearch = Object.keys(item).some((key) => {
       const value = item[key];
       if (key === 'orderItemIds') return false; // Exclude orderItemIds from search
       return value && value.toString().toLowerCase().includes(query);
-    })
-  );
+    });
+    const matchesStatus = statusFilter !== '' ? item.orderStatus === statusFilter : true;
+    return matchesSearch && matchesStatus;
+  });
 }
 
 // Sort data based on sortBy and direction
 function sortData(data, payload) {
-  const { sortBy, reversed } = payload;
+  const { sortBy, reversed, search, statusFilter } = payload;
 
   if (!sortBy) {
-    return filterData(data, payload.search);
+    return filterData(data, search, statusFilter);
   }
 
   return filterData(
@@ -91,7 +97,8 @@ function sortData(data, payload) {
       }
       return aValue < bValue ? -1 : 1;
     }),
-    payload.search
+    search,
+    statusFilter
   );
 }
 
@@ -125,6 +132,7 @@ function OrdersPagination({ total, currentPage, onPageChange, loading }) {
 export default function BookingTable() {
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(''); // Changed from null to ''
   const [data, setData] = useState([]);
   const [sortedData, setSortedData] = useState([]);
   const [sortBy, setSortBy] = useState(null);
@@ -136,25 +144,33 @@ export default function BookingTable() {
   const [viewModal, { open: openView, close: closeView }] = useDisclosure(false);
   const [deleteOrderId, setDeleteOrderId] = useState(null);
   const [viewingOrder, setViewingOrder] = useState(null);
+  const [orderItems, setOrderItems] = useState([]);
+  const [orderItemsLoading, setOrderItemsLoading] = useState(false);
+  const [orderItemsError, setOrderItemsError] = useState(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const userD = JSON.parse(Cookies.get('userData') || '{}');
 
-  // Reset to first page when search changes
+  // Reset to first page when search or status filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, statusFilter]);
 
   // Fetch orders on mount
   useEffect(() => {
-    console.log('📦 Orders page initialized, fetching data...');
+  
     fetchOrders();
   }, []);
+
+  
+  useEffect(() => {
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search, statusFilter }));
+  }, [data, sortBy, reverseSortDirection, search, statusFilter]);
 
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
-    console.log('🔄 Starting orders fetch...');
+   
 
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/order`, {
@@ -162,11 +178,11 @@ export default function BookingTable() {
           Authorization: userD.access_token,
         },
       });
-      console.log('📥 Orders fetch response status:', response.status);
+
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Orders fetch failed:', { status: response.status, error: errorText });
+      
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
         }
@@ -174,27 +190,68 @@ export default function BookingTable() {
       }
 
       const fetchedData = await response.json();
-      console.log('✅ Orders fetched successfully:', fetchedData);
+     
 
       if (Array.isArray(fetchedData)) {
         setData(fetchedData);
-        setSortedData(fetchedData);
-        console.log(`📊 Loaded ${fetchedData.length} orders`);
+        setSortedData(sortData(fetchedData, { sortBy, reversed: reverseSortDirection, search, statusFilter }));
+      
       } else {
-        console.warn('⚠️ Expected array but got:', fetchedData);
+   
         setData([]);
         setSortedData([]);
         setError('Invalid response format from server');
       }
     } catch (error) {
-      console.error('💥 Error fetching orders:', error);
+     
       setError(error.message || 'Failed to fetch orders');
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+      
         return;
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrderItems = async (orderItemIds) => {
+    if (!orderItemIds || orderItemIds.length === 0) {
+      setOrderItems([]);
+      return;
+    }
+
+    setOrderItemsLoading(true);
+    setOrderItemsError(null);
+  
+
+    try {
+      const fetchPromises = orderItemIds.map(async (itemId) => {
+        const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/orderItem/${itemId}`, {
+          headers: {
+            Authorization: userD.access_token,
+            'Accept': '*/*'
+          },
+        });
+
+       
+
+        if (!response.ok) {
+          const errorText = await response.text();
+       
+          throw new Error(`Failed to fetch order item ${itemId}: ${response.status} - ${errorText}`);
+        }
+
+        return await response.json();
+      });
+
+      const items = await Promise.all(fetchPromises);
+    
+      setOrderItems(items);
+    } catch (error) {
+    
+      setOrderItemsError(error.message || 'Failed to fetch order items');
+    } finally {
+      setOrderItemsLoading(false);
     }
   };
 
@@ -209,22 +266,27 @@ export default function BookingTable() {
     const reversed = field === sortBy ? !reverseSortDirection : false;
     setReverseSortDirection(reversed);
     setSortBy(field);
-    setSortedData(sortData(data, { sortBy: field, reversed, search }));
+    setSortedData(sortData(data, { sortBy: field, reversed, search, statusFilter }));
   };
 
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget;
     setSearch(value);
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value }));
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: value, statusFilter }));
+  };
+
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value || ''); // Ensure empty string if value is null
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search, statusFilter: value || '' }));
   };
 
   const handleRefresh = () => {
-    console.log('🔄 Manual refresh triggered for orders');
+    
     fetchOrders();
   };
 
   const handleDelete = (orderId, orderUniqueId) => {
-    console.log('🗑️ Delete order:', orderId);
+ 
     setDeleteOrderId(orderId);
     setNotification({ message: `Delete order #${orderUniqueId}?`, type: 'warning' });
     openDelete();
@@ -234,7 +296,7 @@ export default function BookingTable() {
     if (!deleteOrderId) return;
 
     setDeleteLoading(true);
-    console.log('🗑️ Confirming order deletion:', deleteOrderId);
+ 
 
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/order/${deleteOrderId}`, {
@@ -244,24 +306,24 @@ export default function BookingTable() {
         },
       });
 
-      console.log('📥 Delete response status:', response.status);
+     
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Delete failed:', { status: response.status, error: errorText });
+    
         throw new Error(`Failed to delete order: ${response.status} - ${errorText}`);
       }
 
-      console.log('✅ Order deleted successfully');
+  
       setNotification({ message: 'Order deleted successfully!', type: 'success' });
       closeDelete();
       setCurrentPage(1);
       fetchOrders();
     } catch (error) {
-      console.error('💥 Delete error:', error);
+
       setNotification({ message: `Error deleting order: ${error.message}`, type: 'error' });
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+     
         return;
       }
     } finally {
@@ -271,7 +333,7 @@ export default function BookingTable() {
 
   const handleStatusChange = async (orderId, status) => {
     setStatusLoading(true);
-    console.log(`🔄 Updating order ${orderId} to status: ${status}`);
+    
 
     try {
       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/order/${orderId}/status/${status.toLowerCase()}`, {
@@ -281,22 +343,22 @@ export default function BookingTable() {
         },
       });
 
-      console.log('📥 Status update response status:', response.status);
+    
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Status update failed:', { status: response.status, error: errorText });
+       
         throw new Error(`Failed to update order status: ${response.status} - ${errorText}`);
       }
 
-      console.log('✅ Order status updated successfully');
+     
       setNotification({ message: `Order status updated to ${status}!`, type: 'success' });
       fetchOrders();
     } catch (error) {
-      console.error('💥 Status update error:', error);
+   
       setNotification({ message: `Error updating order status: ${error.message}`, type: 'error' });
       if (error.message.includes('token') || error.message.includes('auth')) {
-        console.log('🔐 Auth error detected, navigation should be handled by token service');
+      
         return;
       }
     } finally {
@@ -305,8 +367,11 @@ export default function BookingTable() {
   };
 
   const handleViewDetails = (order) => {
-    console.log('👁️ Opening order details modal:', order.id);
+    
     setViewingOrder(order);
+    setOrderItems([]); // Reset order items
+    setOrderItemsError(null);
+    fetchOrderItems(order.orderItemIds); // Fetch order item details
     openView();
   };
 
@@ -315,11 +380,6 @@ export default function BookingTable() {
       <Table.Td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
         <Text fz="sm" c="dark" style={{ margin: 0 }}>
           #{row.orderUniqueId || 'N/A'}
-        </Text>
-      </Table.Td>
-      <Table.Td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-        <Text fz="sm" c="dark" style={{ margin: 0 }}>
-          {row.userId || 'N/A'}
         </Text>
       </Table.Td>
       <Table.Td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
@@ -510,7 +570,7 @@ export default function BookingTable() {
               Orders
             </Title>
             <Text c="dimmed" size="sm" style={{ marginTop: '4px' }}>
-              Manage your orders ({data.length} total)
+              Manage your orders ({sortedData.length} total)
             </Text>
           </div>
           <Group gap="md">
@@ -532,43 +592,87 @@ export default function BookingTable() {
         </Group>
       </Box>
 
-      {/* Search Section */}
+      {/* Filter and Search Section */}
       <Box style={{
         backgroundColor: 'white',
         padding: '20px 32px',
         borderBottom: '1px solid #e2e8f0',
         marginBottom: '24px'
       }}>
-        <TextInput
-          placeholder="Search orders by order ID, phone, location, date, amount, status..."
-          value={search}
-          onChange={handleSearchChange}
-          size="md"
-          radius="md"
-          leftSection={
-            <IconSearch size={16} style={{ color: '#94a3b8' }} />
-          }
-          styles={{
-            input: {
-              border: '1px solid #e2e8f0',
-              paddingLeft: '44px',
-              height: '44px',
-              fontSize: '14px',
-              '&:focus': {
-                borderColor: '#3b82f6',
-                boxShadow: '0 0 0 1px #3b82f6',
+        <Group gap="md" align="flex-end">
+          <Select
+            placeholder="Filter by status"
+            data={[
+              { value: '', label: 'All Statuses' },
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'PROCESSING', label: 'Processing' },
+              { value: 'DELIVERED', label: 'Delivered' },
+              { value: 'CANCELLED', label: 'Cancelled' }
+            ]}
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            size="md"
+            radius="md"
+            clearable
+            styles={{
+              input: {
+                border: '1px solid #e2e8f0',
+                height: '44px',
+                fontSize: '14px',
+                '&:focus': {
+                  borderColor: '#3b82f6',
+                  boxShadow: '0 0 0 1px #3b82f6',
+                },
               },
-            },
-            section: {
-              width: '44px',
-              height: '44px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
-          }}
-          style={{ maxWidth: '480px', width: '100%' }}
-        />
+              dropdown: {
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px'
+              },
+              item: {
+                fontSize: '14px',
+                padding: '8px 12px',
+                '&:hover': {
+                  backgroundColor: '#f1f5f9',
+                },
+                '&[data-selected]': {
+                  backgroundColor: '#3b82f6',
+                  color: 'white'
+                }
+              }
+            }}
+            style={{ maxWidth: '200px', width: '100%' }}
+          />
+          <TextInput
+            placeholder="Search orders by order ID, phone, location, date, amount, status..."
+            value={search}
+            onChange={handleSearchChange}
+            size="md"
+            radius="md"
+            leftSection={
+              <IconSearch size={16} style={{ color: '#94a3b8' }} />
+            }
+            styles={{
+              input: {
+                border: '1px solid #e2e8f0',
+                paddingLeft: '44px',
+                height: '44px',
+                fontSize: '14px',
+                '&:focus': {
+                  borderColor: '#3b82f6',
+                  boxShadow: '0 0 0 1px #3b82f6',
+                },
+              },
+              section: {
+                width: '44px',
+                height: '44px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            }}
+            style={{ maxWidth: '480px', width: '100%' }}
+          />
+        </Group>
       </Box>
 
       {/* Error Alert */}
@@ -608,6 +712,43 @@ export default function BookingTable() {
         </Paper>
       )}
 
+      {/* Order Items Error */}
+      {orderItemsError && (
+        <Paper style={{
+          margin: '0 32px 24px',
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '16px'
+        }}>
+          <Group justify="apart">
+            <Text c="red" size="sm" fw={500}>
+              <IconTrash size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+              Failed to load order items
+            </Text>
+            <Button
+              size="xs"
+              variant="subtle"
+              color="red"
+              onClick={() => fetchOrderItems(viewingOrder?.orderItemIds || [])}
+              leftSection={<IconRefresh size={12} />}
+              styles={{
+                root: {
+                  height: '28px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                },
+              }}
+            >
+              Retry
+            </Button>
+          </Group>
+          <Text c="red" size="xs" mt="xs">
+            {orderItemsError}
+          </Text>
+        </Paper>
+      )}
+
       {/* Main Content */}
       <ScrollArea style={{ height: 'calc(100vh - 200px)' }}>
         <Paper style={{
@@ -635,14 +776,6 @@ export default function BookingTable() {
                   style={{ width: '150px', paddingLeft: '16px' }}
                 >
                   Order ID
-                </Th>
-                <Th
-                  sorted={sortBy === 'userId'}
-                  reversed={reverseSortDirection}
-                  onSort={() => setSorting('userId')}
-                  style={{ width: '200px' }}
-                >
-                  User ID
                 </Th>
                 <Th
                   sorted={sortBy === 'phoneNO'}
@@ -695,7 +828,7 @@ export default function BookingTable() {
               ) : (
                 <Table.Tr>
                   <Table.Td
-                    colSpan={8}
+                    colSpan={7}
                     style={{
                       textAlign: 'center',
                       padding: '60px 20px',
@@ -703,7 +836,7 @@ export default function BookingTable() {
                     }}
                   >
                     <Stack align="center" gap="md">
-                      {search ? (
+                      {search || statusFilter !== '' ? (
                         <>
                           <ActionIcon size="lg" variant="light" color="gray" radius="xl" style={{ width: '80px', height: '80px' }}>
                             <IconSearch size={32} />
@@ -713,17 +846,20 @@ export default function BookingTable() {
                               No orders found
                             </Text>
                             <Text c="dimmed" size="sm">
-                              Try adjusting your search terms or clear the search to see all orders.
+                              Try adjusting your search terms or clear the filters to see all orders.
                             </Text>
                           </div>
                           <Button
                             variant="light"
                             color="blue"
                             leftSection={<IconSearch size={14} />}
-                            onClick={() => setSearch('')}
+                            onClick={() => {
+                              setSearch('');
+                              setStatusFilter('');
+                            }}
                             size="sm"
                           >
-                            Clear Search
+                            Clear Filters
                           </Button>
                         </>
                       ) : (
@@ -781,7 +917,7 @@ export default function BookingTable() {
         <Stack gap="md">
           <div style={{ textAlign: 'center', padding: '0 16px' }}>
             <IconTrash size={48} color="#ef4444" style={{ margin: '0 auto 16px' }} />
-            <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
+            <Text size="sm" c="dimmed" style={{ lineHeight: '1.5' }}>
               Are you sure you want to delete this order?
               <br />
               <strong style={{ color: 'dark' }}>#{deleteOrderId}</strong>
@@ -821,7 +957,7 @@ export default function BookingTable() {
         opened={viewModal}
         onClose={closeView}
         title="Order Details"
-        size="lg"
+        size="xl"
         withCloseButton
         radius="md"
         styles={{
@@ -847,10 +983,6 @@ export default function BookingTable() {
                 <Text>{viewingOrder.id || 'N/A'}</Text>
               </div>
               <div>
-                <Text size="sm" fw={500} c="dimmed">User ID</Text>
-                <Text>{viewingOrder.userId || 'N/A'}</Text>
-              </div>
-              <div>
                 <Text size="sm" fw={500} c="dimmed">Phone Number</Text>
                 <Text>{viewingOrder.phoneNO || 'N/A'}</Text>
               </div>
@@ -870,11 +1002,63 @@ export default function BookingTable() {
                 <Text size="sm" fw={500} c="dimmed">Status</Text>
                 <Text>{viewingOrder.orderStatus || 'N/A'}</Text>
               </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <Text size="sm" fw={500} c="dimmed">Order Item IDs</Text>
-                <Text>{viewingOrder.orderItemIds?.length > 0 ? viewingOrder.orderItemIds.join(', ') : 'None'}</Text>
-              </div>
             </div>
+            <Divider my="md" />
+            <Text size="lg" fw={600}>Order Items</Text>
+            {orderItemsLoading ? (
+              <LoadingOverlay
+                visible={orderItemsLoading}
+                overlayProps={{ radius: 'sm', blur: 2 }}
+                loaderProps={{ color: 'blue', type: 'bars' }}
+              />
+            ) : orderItems.length > 0 ? (
+              <Table
+                horizontalSpacing="sm"
+                verticalSpacing="sm"
+                style={{ fontSize: '14px' }}
+              >
+                <Table.Thead style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <Table.Tr>
+                    <Table.Th style={{ padding: '8px' }}>Book Image</Table.Th>
+                    <Table.Th style={{ padding: '8px' }}>Book Name</Table.Th>
+                    <Table.Th style={{ padding: '8px', textAlign: 'right' }}>Quantity</Table.Th>
+                    <Table.Th style={{ padding: '8px', textAlign: 'right' }}>Unit Price</Table.Th>
+                    <Table.Th style={{ padding: '8px', textAlign: 'right' }}>Total Price</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {orderItems.map((item) => (
+                    <Table.Tr key={item.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
+                      <Table.Td style={{ padding: '8px' }}>
+                        <Image
+                          src={`${BOOKS_API_BASE_URL}/file/${item.bookImageUrl.split('/').pop()}`}
+                          alt={item.bookName}
+                          height={50}
+                          width={50}
+                          fit="contain"
+                          radius="md"
+                          fallbackSrc="https://via.placeholder.com/50x50?text=No+Image"
+                        />
+                      </Table.Td>
+                      <Table.Td style={{ padding: '8px' }}>
+                        <Text fz="sm">{item.bookName || 'N/A'}</Text>
+                      </Table.Td>
+                      <Table.Td style={{ padding: '8px', textAlign: 'right' }}>
+                        <Text fz="sm">{item.quantity || 'N/A'}</Text>
+                      </Table.Td>
+                      <Table.Td style={{ padding: '8px', textAlign: 'right' }}>
+                        <Text fz="sm">{item.unitPrice ? `$${parseFloat(item.unitPrice).toFixed(2)}` : 'N/A'}</Text>
+                      </Table.Td>
+                      <Table.Td style={{ padding: '8px', textAlign: 'right' }}>
+                        <Text fz="sm">{item.totalPrice ? `$${parseFloat(item.totalPrice).toFixed(2)}` : 'N/A'}</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            ) : (
+              <Text c="dimmed">No order items available.</Text>
+            )}
             <Group justify="flex-end" mt="md">
               <Button
                 variant="outline"

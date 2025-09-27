@@ -44,10 +44,10 @@ export default function AuthenticationTitle() {
     const handleLogin = async () => {
         setError('');
         setLoading(true);
-        console.log('🔐 Starting login process...');
+    
 
         try {
-            console.log('📤 Sending login request with phone:', phone);
+         
             const response = await fetch(`${BOOKS_API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
@@ -59,28 +59,28 @@ export default function AuthenticationTitle() {
                 }),
             });
 
-            console.log('📥 Login response status:', response.status);
+    
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('❌ Login failed with response:', errorText);
+             
                 throw new Error(`Login failed: ${response.status} - ${errorText || 'Unknown error'}`);
             }
 
             const data = await response.json();
-            console.log('✅ Login successful, received data:', data);
+      
             
             if (data.access_token) {
-                console.log('🔑 Setting auth data with token...');
+              
                 tokenService.setAuthData(data);
-                console.log('🚀 Navigating to /stat...');
+              
                 router.push('/stat');
             } else {
-                console.error('❌ No access token in response:', data);
+              
                 throw new Error('No access token received from server');
             }
         } catch (err) {
-            console.error('💥 Login error:', err);
+            
             setError(err.message || 'An error occurred during login');
         } finally {
             setLoading(false);

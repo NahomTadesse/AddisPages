@@ -21,8 +21,7 @@ export default function SetPrices() {
   };
 
   const handleSubmit = () => {
-    console.log('Submitted Prices:', prices);
-    // Here you can handle the submission, e.g., send to an API
+
   };
 
   return (

@@ -121,33 +121,33 @@ export default function StatsRing() {
 
   // Set up navigation for the auth service
   useEffect(() => {
-    console.log('📊 StatsRing page loaded, setting up navigation...');
+ 
     setNavigation((path) => {
-      console.log('📍 StatsRing navigation to:', path);
+  
       router.push(path);
     });
   }, [router]);
 
   // Check token validity on page load
   useEffect(() => {
-    console.log('🔐 Checking authentication for StatsRing...');
+ 
     const checkAuth = async () => {
       try {
         // Make a lightweight API call to verify token (adjust endpoint as needed)
         const response = await authenticatedFetch('/api/auth/verify'); // Replace with your actual auth verification endpoint
-        console.log('📥 Auth verification response status:', response.status);
+     
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('❌ Auth verification failed:', { status: response.status, error: errorText });
+        
           throw new Error('Authentication failed. Please log in again.');
         }
 
-        console.log('✅ Authentication verified successfully');
+    
       } catch (error) {
-        console.error('💥 Auth verification error:', error);
+     
         if (error.message.includes('token') || error.message.includes('auth')) {
-          console.log('🔐 Auth error detected, navigation should be handled by token service');
+        
         }
       }
     };
