@@ -214,48 +214,103 @@ export default function BookingTable() {
     }
   };
 
-  const fetchOrderItems = async (orderItemIds) => {
-    if (!orderItemIds || orderItemIds.length === 0) {
-      setOrderItems([]);
-      return;
-    }
+  // const fetchOrderItems = async (orderItemIds) => {
+  //   if (!orderItemIds || orderItemIds.length === 0) {
+  //     setOrderItems([]);
+  //     return;
+  //   }
 
-    setOrderItemsLoading(true);
-    setOrderItemsError(null);
+  //   setOrderItemsLoading(true);
+  //   setOrderItemsError(null);
   
 
-    try {
-      const fetchPromises = orderItemIds.map(async (itemId) => {
-        const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/orderItem/${itemId}`, {
-          headers: {
-            Authorization: userD.access_token,
-            'Accept': '*/*'
-          },
-        });
+  //   try {
+  //     const fetchPromises = orderItemIds.map(async (itemId) => {
+  //       const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/orderItem/${itemId}`, {
+  //         headers: {
+  //           Authorization: userD.access_token,
+  //           'Accept': '*/*'
+  //         },
+  //       });
 
        
 
-        if (!response.ok) {
-          const errorText = await response.text();
+  //       if (!response.ok) {
+  //         const errorText = await response.text();
        
-          throw new Error(`Failed to fetch order item ${itemId}: ${response.status} - ${errorText}`);
-        }
+  //         throw new Error(`Failed to fetch order item ${itemId}: ${response.status} - ${errorText}`);
+  //       }
 
-        return await response.json();
-      });
+  //       return await response.json();
+  //     });
 
-      const items = await Promise.all(fetchPromises);
+  //     const items = await Promise.all(fetchPromises);
     
-      setOrderItems(items);
-    } catch (error) {
+  //     setOrderItems(items);
+  //   } catch (error) {
     
-      setOrderItemsError(error.message || 'Failed to fetch order items');
-    } finally {
-      setOrderItemsLoading(false);
-    }
-  };
+  //     setOrderItemsError(error.message || 'Failed to fetch order items');
+  //   } finally {
+  //     setOrderItemsLoading(false);
+  //   }
+  // };
 
   // Pagination logic
+
+const fetchOrderItems = async (orderItemIds) => {
+  if (!orderItemIds || orderItemIds.length === 0) {
+    setOrderItems([]);
+    setOrderItemsError(null);
+    console.log('No orderItemIds provided, setting empty order items');
+    return;
+  }
+
+  setOrderItemsLoading(true);
+  setOrderItemsError(null);
+  console.log('Fetching order items for IDs:', orderItemIds);
+
+  try {
+    const fetchPromises = orderItemIds.map(async (itemId) => {
+      console.log(`Fetching order item: ${itemId}`);
+      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/orderItem/${itemId}`, {
+        headers: {
+          Authorization: userD.access_token,
+          'Accept': '*/*',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Failed to fetch order item ${itemId}: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to fetch order item ${itemId}: ${response.status} - ${errorText}`);
+      }
+
+      const itemData = await response.json();
+      console.log(`Order item ${itemId} response:`, itemData);
+      return itemData.data || itemData; // Handle possible wrapper object
+    });
+
+    const items = await Promise.all(fetchPromises);
+    // Normalize order item data
+    const normalizedItems = items.map((item) => ({
+      id: item.id || '',
+      bookName: item.bookName || 'N/A',
+      bookImageUrl: item.bookImageUrl || '',
+      quantity: item.quantity || 0,
+      unitPrice: item.unitPrice || 0,
+      totalPrice: item.totalPrice || 0,
+    }));
+
+    console.log('Normalized order items:', normalizedItems);
+    setOrderItems(normalizedItems);
+  } catch (error) {
+    console.error('Fetch Order Items Error:', error);
+    setOrderItemsError(error.message || 'Failed to fetch order items');
+    setOrderItems([]);
+  } finally {
+    setOrderItemsLoading(false);
+  }
+};
   const paginatedData = () => {
     const startIndex = (currentPage - 1) * 7;
     const endIndex = startIndex + 7;
@@ -978,10 +1033,10 @@ export default function BookingTable() {
                 <Text size="sm" fw={500} c="dimmed">Order ID</Text>
                 <Text>#{viewingOrder.orderUniqueId || 'N/A'}</Text>
               </div>
-              <div>
+              {/* <div>
                 <Text size="sm" fw={500} c="dimmed">Internal ID</Text>
                 <Text>{viewingOrder.id || 'N/A'}</Text>
-              </div>
+              </div> */}
               <div>
                 <Text size="sm" fw={500} c="dimmed">Phone Number</Text>
                 <Text>{viewingOrder.phoneNO || 'N/A'}</Text>
@@ -1028,10 +1083,11 @@ export default function BookingTable() {
                 </Table.Thead>
                 <Table.Tbody>
                   {orderItems.map((item) => (
+      
                     <Table.Tr key={item.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
                       <Table.Td style={{ padding: '8px' }}>
                         <Image
-                          src={`${BOOKS_API_BASE_URL}/file/${item.bookImageUrl.split('/').pop()}`}
+                          src={`${BOOKS_API_BASE_URL}/file/${item.bookImageUrl && item.bookImageUrl.split('/').pop()}`}
                           alt={item.bookName}
                           height={50}
                           width={50}
