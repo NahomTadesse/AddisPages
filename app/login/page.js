@@ -1,3 +1,5 @@
+
+
 "use client";
 import {
     Anchor,
@@ -21,6 +23,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconInfoCircle, IconUser } from '@tabler/icons-react';
 import tokenService from '../services/tokenService';
 import { BOOKS_API_BASE_URL } from '../services/baseApiService';
+import Cookies from 'js-cookie';
 
 export default function AuthenticationTitle() {
     const [phone, setPhone] = useState('');
@@ -73,6 +76,7 @@ export default function AuthenticationTitle() {
             if (data.access_token) {
               
                 tokenService.setAuthData(data);
+                Cookies.set('auth_data', JSON.stringify(data), { expires: 7, secure: true, sameSite: 'Strict' });
               
                 router.push('/stat');
             } else {

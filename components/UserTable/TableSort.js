@@ -212,8 +212,8 @@ export default function BooksTable() {
 
     
     try {
-      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/book/all`);
-   
+      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/book/role`); 
+  //  http://books-api.addispages.com/api/v1/book/all
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -228,9 +228,9 @@ export default function BooksTable() {
       const fetchedData = await response.json();
    
       
-      if (Array.isArray(fetchedData)) {
-        setData(fetchedData);
-        setSortedData(fetchedData);
+      if (Array.isArray(fetchedData.data)) {
+        setData(fetchedData.data);
+        setSortedData(fetchedData.data);
     
       } else {
     
@@ -257,7 +257,7 @@ export default function BooksTable() {
   
     
     try {
-      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/author/all`);
+      const response = await authenticatedFetch(`${BOOKS_API_BASE_URL}/authors/all`);
    
       
       if (!response.ok) {
