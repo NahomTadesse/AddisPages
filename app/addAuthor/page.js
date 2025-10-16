@@ -344,7 +344,7 @@ export default function AuthorForm() {
                 onChange={(event) => setBio(event.currentTarget.value)}
                 placeholder="Enter author biography"
                 rightSection={<IconUser size={20} />}
-                style={{ maxWidth: 800, marginTop: 10 }}
+                style={{ maxWidth: 400, marginTop: 10 }}
                 error={error.includes('bio') ? error : ''}
                 multiline
                 rows={4}
