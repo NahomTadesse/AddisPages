@@ -182,18 +182,17 @@ export default function StoresTable() {
     setLoading(false);
   }, [router]);
 
-  // ALWAYS call this useEffect at the top level for data fetching
-  // The condition is INSIDE the effect, not around the hook call
+
   useEffect(() => {
-    // Only fetch if user is ADMIN and not still loading
+ 
     if (userRole === 'ADMIN' && !loading) {
       fetchStores();
     }
     else{
       // router.push('stat');
     }
-  }, [userRole]); // Depend on userRole and loading to re-run when they change
-  // Reset to first page when search changes
+  }, [userRole]); 
+
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
